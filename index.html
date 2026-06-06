@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Need-It-Now — buy & sell with people near you</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/tokens.css" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="brand" href="index.html">
+        <span class="brand__mark">⚡</span>
+        <span class="full"><b>Need</b>-<b>It</b><span style="color:var(--ink)">-Now</span></span>
+      </a>
+      <div class="nav__links">
+        <a href="index.html" class="active">Home</a>
+        <a href="pages/feed.html">Browse</a>
+        <a href="pages/post.html">Post</a>
+      </div>
+      <div class="nav__user" data-nav-user></div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap hero__inner">
+      <div>
+        <span class="eyebrow reveal"><span class="dot"></span> Local marketplace</span>
+        <h1 class="reveal d1">Need it now? <span class="hl">Find it next door.</span></h1>
+        <p class="lead reveal d2">
+          Post what you're after or list what you're selling — then see what
+          neighbors near you have, sorted by distance. No shipping, no waiting.
+          Just people in your area making deals.
+        </p>
+        <div class="hero__cta reveal d2">
+          <a class="btn btn--primary btn--lg" href="pages/feed.html">Browse the feed</a>
+          <a class="btn btn--money btn--lg" href="pages/post.html">+ Post a listing</a>
+        </div>
+        <div class="hero__stats reveal d3">
+          <div><b>2,400+</b><span>neighbors nearby</span></div>
+          <div><b style="color:var(--green-600)">$1.2M</b><span>traded locally</span></div>
+          <div><b>15 min</b><span>avg first reply</span></div>
+        </div>
+      </div>
+      <div class="hero__art" aria-hidden="true">
+        <div class="float-card">
+          <div class="listing__top" style="margin-bottom:.5rem">
+            <span class="badge badge--sell">For sale</span>
+            <span class="price" style="font-size:var(--fs-lg)">$8,500</span>
+          </div>
+          <div style="font-size:2rem">🚗</div>
+          <strong style="font-family:var(--font-display)">2015 Honda Civic EX</strong>
+          <div class="muted" style="font-size:var(--fs-xs);margin-top:.4rem">📍 2 mi away · Maria L.</div>
+        </div>
+        <div class="float-card">
+          <div class="listing__top" style="margin-bottom:.5rem">
+            <span class="badge badge--buy">Looking to buy</span>
+            <span class="price" style="font-size:var(--fs-lg)">Budget $400</span>
+          </div>
+          <div style="font-size:2rem">🎮</div>
+          <strong style="font-family:var(--font-display)">Wanted: PS5 (disc)</strong>
+          <div class="muted" style="font-size:var(--fs-xs);margin-top:.4rem">📍 4 mi away · Aisha K.</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section">
+      <div class="wrap">
+        <h2 class="section-title">How Need-It-Now works</h2>
+        <p class="section-sub">Two ways to use it — and a feed that only shows what's close.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>Set your spot</h3>
+            <p>Tell us your ZIP and how far you'll travel. The feed filters to deals inside your radius — nothing across the country.</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>Post or browse</h3>
+            <p>Selling something? List it with a price. Hunting for something? Post a <em>“looking to buy”</em> with your budget so sellers come to you.</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>Make the deal</h3>
+            <p>Tap “I'm interested” or “I have one” to connect, agree on a price, and meet up locally. Money stays in the neighborhood.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="wrap">
+        <div class="card" style="padding:var(--sp-7);text-align:center;background:linear-gradient(135deg,var(--blue-050),var(--green-050))">
+          <h2 style="font-size:var(--fs-2xl);margin-bottom:var(--sp-2)">Got something to sell — or something you need?</h2>
+          <p class="muted" style="margin-bottom:var(--sp-5)">Join free and post your first listing in under a minute.</p>
+          <div style="display:flex;gap:var(--sp-3);justify-content:center;flex-wrap:wrap">
+            <a class="btn btn--primary btn--lg" href="pages/register.html">Create a free account</a>
+            <a class="btn btn--ghost btn--lg" href="pages/feed.html">Just browsing →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot__inner">
+      <span><strong style="font-family:var(--font-display)">Need-It-Now</strong> · buy &amp; sell, locally</span>
+      <span>Prototype demo — data is saved in your browser only.</span>
+    </div>
+  </footer>
+
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/seed.js"></script>
+  <script src="assets/js/auth.js"></script>
+</body>
+</html>

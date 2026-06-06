@@ -1,0 +1,62 @@
+/* Need-It-Now — design tokens
+   Edit these variables to re-theme the whole site. */
+:root {
+  /* Brand: trust blue (navigation/identity) + money green (prices/CTAs) */
+  --blue-600: #1877f2;   /* primary */
+  --blue-700: #166fe5;   /* primary hover */
+  --blue-050: #e7f0fe;   /* tints / badges */
+
+  --green-600: #16a34a;  /* money accent / sell */
+  --green-700: #15803d;  /* hover */
+  --green-050: #e8f6ee;  /* tint */
+
+  /* Neutrals */
+  --bg:        #f0f2f5;  /* app background */
+  --surface:   #ffffff;  /* cards, nav */
+  --surface-2: #f7f8fa;  /* subtle fills */
+  --border:    #dde1e7;
+  --border-2:  #ced3da;
+
+  --ink:       #0b0c0e;  /* primary text */
+  --ink-2:     #3a3d42;  /* secondary text */
+  --muted:     #6a6e76;  /* meta text */
+
+  --danger:    #e2483b;
+
+  /* Type */
+  --font-display: "Sora", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+
+  /* Modular type scale (1.2 ratio) */
+  --fs-xs:  0.78rem;
+  --fs-sm:  0.875rem;
+  --fs-base: 1rem;
+  --fs-md:  1.15rem;
+  --fs-lg:  1.4rem;
+  --fs-xl:  1.85rem;
+  --fs-2xl: 2.4rem;
+  --fs-3xl: clamp(2.6rem, 6vw, 4rem);
+
+  /* Spacing scale (4px base) */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4.5rem;
+
+  /* Radius + shadow */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(11,12,14,.06), 0 1px 3px rgba(11,12,14,.05);
+  --shadow-md: 0 4px 14px rgba(11,12,14,.08);
+  --shadow-lg: 0 18px 40px rgba(11,12,14,.14);
+
+  --maxw: 1120px;
+  --nav-h: 60px;
+}

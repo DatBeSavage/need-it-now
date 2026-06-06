@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log in — Need-It-Now</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/tokens.css" />
+  <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="brand" href="../index.html">
+        <span class="brand__mark">⚡</span>
+        <span class="full"><b>Need</b>-<b>It</b><span style="color:var(--ink)">-Now</span></span>
+      </a>
+      <div class="nav__links">
+        <a href="../index.html">Home</a>
+        <a href="feed.html">Browse</a>
+        <a href="post.html">Post</a>
+      </div>
+      <div class="nav__user" data-nav-user></div>
+    </div>
+  </nav>
+
+  <main class="auth-wrap">
+    <form class="card auth-card reveal" data-login novalidate>
+      <h1>Welcome back</h1>
+      <p class="sub">Log in to post listings and respond to neighbors.</p>
+
+      <div class="field">
+        <label for="l-email">Email</label>
+        <input class="input" id="l-email" name="email" type="email" autocomplete="email" placeholder="you@email.com" />
+      </div>
+      <div class="field">
+        <label for="l-pass">Password</label>
+        <input class="input" id="l-pass" name="password" type="password" autocomplete="current-password" placeholder="Your password" />
+      </div>
+
+      <p class="form-error" role="alert"></p>
+      <button class="btn btn--primary btn--block btn--lg" type="submit">Log in</button>
+
+      <div class="banner banner--ok" style="margin-top:var(--sp-4);margin-bottom:0">
+        <span>Try the demo account →</span>
+        <a href="#" class="btn btn--ghost" data-demo-fill>Fill demo login</a>
+      </div>
+
+      <p class="auth-foot">New here? <a href="register.html">Create an account</a></p>
+    </form>
+  </main>
+
+  <script src="../assets/js/store.js"></script>
+  <script src="../assets/js/seed.js"></script>
+  <script src="../assets/js/auth.js"></script>
+</body>
+</html>

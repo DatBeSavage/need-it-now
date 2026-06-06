@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post a listing — Need-It-Now</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/tokens.css" />
+  <link rel="stylesheet" href="../assets/css/main.css" />
+  <style>
+    .type-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); margin-bottom: var(--sp-5); }
+    .type-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+    .type-toggle label {
+      display: block; cursor: pointer; text-align: center; font-weight: 700;
+      border: 2px solid var(--border-2); border-radius: var(--r-md);
+      padding: var(--sp-4); transition: all .15s; background: var(--surface);
+    }
+    .type-toggle .t-emoji { font-size: 1.6rem; display: block; margin-bottom: var(--sp-1); }
+    .type-toggle .t-sub { display: block; font-weight: 500; font-size: var(--fs-xs); color: var(--muted); }
+    .type-toggle input:checked + label.sell { border-color: var(--green-600); background: var(--green-050); color: var(--green-700); }
+    .type-toggle input:checked + label.buy { border-color: var(--blue-600); background: var(--blue-050); color: var(--blue-700); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+    @media (max-width: 520px) { .grid-2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="brand" href="../index.html">
+        <span class="brand__mark">⚡</span>
+        <span class="full"><b>Need</b>-<b>It</b><span style="color:var(--ink)">-Now</span></span>
+      </a>
+      <div class="nav__links">
+        <a href="../index.html">Home</a>
+        <a href="feed.html">Browse</a>
+        <a href="post.html" class="active">Post</a>
+      </div>
+      <div class="nav__user" data-nav-user></div>
+    </div>
+  </nav>
+
+  <main class="wrap" style="max-width:640px;padding-block:var(--sp-6)">
+    <h1 style="font-size:var(--fs-xl);margin-bottom:var(--sp-1)" class="reveal">Post a listing</h1>
+    <p class="muted reveal d1" style="margin-bottom:var(--sp-5)">Selling something or hunting for something? Tell your neighbors.</p>
+
+    <form class="card reveal d1" data-post novalidate style="padding:var(--sp-6)">
+      <fieldset style="border:0;padding:0;margin:0">
+        <legend style="font-weight:700;font-size:var(--fs-sm);margin-bottom:var(--sp-2)">What kind of post is this?</legend>
+        <div class="type-toggle">
+          <input type="radio" name="type" id="t-sell" value="sell" checked />
+          <label class="sell" for="t-sell"><span class="t-emoji">🏷️</span>For sale<span class="t-sub">I'm selling an item</span></label>
+          <input type="radio" name="type" id="t-buy" value="buy" />
+          <label class="buy" for="t-buy"><span class="t-emoji">🔎</span>Looking to buy<span class="t-sub">I want someone to sell me this</span></label>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="p-title">Title</label>
+        <input class="input" id="p-title" name="title_" placeholder="e.g. 2015 Honda Civic EX — clean title" />
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="p-category">Category</label>
+          <select class="select" id="p-category" name="category">
+            <option value="car">Cars &amp; vehicles</option>
+            <option value="bike">Bikes</option>
+            <option value="phone">Phones &amp; electronics</option>
+            <option value="furniture">Furniture</option>
+            <option value="game">Games &amp; consoles</option>
+            <option value="tool">Tools</option>
+            <option value="garden">Garden &amp; outdoor</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-price" id="price-label">Asking price ($)</label>
+          <input class="input" id="p-price" name="price" type="number" min="0" step="1" placeholder="0" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="p-zip">Location (ZIP)</label>
+        <input class="input" id="p-zip" name="zip" list="zip-list" placeholder="e.g. 78701" />
+        <datalist id="zip-list"></datalist>
+        <p class="hint">Buyers see how far away you are from this ZIP.</p>
+      </div>
+
+      <div class="field">
+        <label for="p-desc">Details</label>
+        <textarea class="textarea" id="p-desc" name="desc" placeholder="Condition, pickup details, why you're selling or what exactly you're after…"></textarea>
+      </div>
+
+      <p class="form-error" role="alert"></p>
+      <div style="display:flex;gap:var(--sp-3)">
+        <a class="btn btn--ghost" href="feed.html">Cancel</a>
+        <button class="btn btn--money btn--lg" type="submit" style="flex:1">Publish listing</button>
+      </div>
+    </form>
+  </main>
+
+  <script src="../assets/js/store.js"></script>
+  <script src="../assets/js/seed.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/post.js"></script>
+</body>
+</html>

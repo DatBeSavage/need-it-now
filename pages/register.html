@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign up — Need-It-Now</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/tokens.css" />
+  <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="brand" href="../index.html">
+        <span class="brand__mark">⚡</span>
+        <span class="full"><b>Need</b>-<b>It</b><span style="color:var(--ink)">-Now</span></span>
+      </a>
+      <div class="nav__links">
+        <a href="../index.html">Home</a>
+        <a href="feed.html">Browse</a>
+        <a href="post.html">Post</a>
+      </div>
+      <div class="nav__user" data-nav-user></div>
+    </div>
+  </nav>
+
+  <main class="auth-wrap">
+    <form class="card auth-card reveal" data-register novalidate>
+      <h1>Create your account</h1>
+      <p class="sub">Join free and start buying &amp; selling with neighbors.</p>
+
+      <div class="field">
+        <label for="r-name">Full name</label>
+        <input class="input" id="r-name" name="name_" autocomplete="name" placeholder="Alex Johnson" />
+      </div>
+      <div class="field">
+        <label for="r-email">Email</label>
+        <input class="input" id="r-email" name="email" type="email" autocomplete="email" placeholder="you@email.com" />
+      </div>
+      <div class="field">
+        <label for="r-zip">Your ZIP code</label>
+        <input class="input" id="r-zip" name="zip" list="zip-list" placeholder="e.g. 78701" />
+        <datalist id="zip-list">
+          <option value="78701">Austin (Downtown), TX</option>
+          <option value="78704">Austin (South), TX</option>
+          <option value="78745">Austin (Southwest), TX</option>
+          <option value="78758">Austin (North), TX</option>
+          <option value="78660">Pflugerville, TX</option>
+          <option value="78664">Round Rock, TX</option>
+          <option value="78626">Georgetown, TX</option>
+          <option value="78610">Buda, TX</option>
+          <option value="78640">Kyle, TX</option>
+          <option value="78205">San Antonio, TX</option>
+          <option value="75201">Dallas, TX</option>
+          <option value="77002">Houston, TX</option>
+        </datalist>
+        <p class="hint">Demo covers the Austin, TX metro — pick one from the list.</p>
+      </div>
+      <div class="field">
+        <label for="r-pass">Password</label>
+        <input class="input" id="r-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 6 characters" />
+      </div>
+
+      <p class="form-error" role="alert"></p>
+      <button class="btn btn--primary btn--block btn--lg" type="submit">Create account</button>
+
+      <p class="auth-foot">Already have an account? <a href="login.html">Log in</a></p>
+    </form>
+  </main>
+
+  <script src="../assets/js/store.js"></script>
+  <script src="../assets/js/seed.js"></script>
+  <script src="../assets/js/auth.js"></script>
+</body>
+</html>
