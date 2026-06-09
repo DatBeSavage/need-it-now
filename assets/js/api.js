@@ -329,3 +329,19 @@ export async function adminDeleteListing(listingId) {
   const { error } = await supabase.from("listings").delete().eq("id", listingId);
   if (error) throw error;
 }
+
+export async function banUser(userId, reason) {
+  const { error } = await supabase.from("banned_users").insert({ user_id: userId, reason: (reason || "").trim() });
+  if (error) throw error;
+}
+
+export async function unbanUser(userId) {
+  const { error } = await supabase.from("banned_users").delete().eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function adminListBanned() {
+  const { data, error } = await supabase.from("banned_users").select("user_id,reason");
+  if (error) throw error;
+  return data || [];
+}

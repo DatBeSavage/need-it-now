@@ -87,6 +87,35 @@ create policy "admins_select" on public.admins
 -- NO insert/update/delete policies: only the SQL Editor (service role) can add admins.
 
 -- ============================================================
+-- Ban identity  (Admin Increment C)
+-- ============================================================
+create table if not exists public.banned_users (
+  user_id    uuid primary key references public.profiles (id) on delete cascade,
+  reason     text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create or replace function public.is_banned()
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.banned_users where user_id = auth.uid());
+$$;
+
+alter table public.banned_users enable row level security;
+drop policy if exists "banned_select_admin" on public.banned_users;
+drop policy if exists "banned_insert_admin" on public.banned_users;
+drop policy if exists "banned_delete_admin" on public.banned_users;
+create policy "banned_select_admin" on public.banned_users for select using (public.is_admin());
+create policy "banned_insert_admin" on public.banned_users for insert with check (public.is_admin());
+create policy "banned_delete_admin" on public.banned_users for delete using (public.is_admin());
+
+-- Re-create the listings insert policy WITH the ban check (its original definition
+-- sits earlier in the file, before is_banned() exists).
+drop policy if exists "listings_insert_own" on public.listings;
+create policy "listings_insert_own" on public.listings for insert
+  with check (auth.uid() = user_id and not public.is_banned());
+
+-- ============================================================
 -- Triggers
 -- ============================================================
 -- Auto-create a profile row when a new auth user signs up.
@@ -159,6 +188,7 @@ create policy "conversations_insert_buyer" on public.conversations for insert
     auth.uid() = buyer_id
     and buyer_id <> owner_id
     and owner_id = (select l.user_id from public.listings l where l.id = listing_id)
+    and not public.is_banned()
   );
 create policy "conversations_update_party" on public.conversations for update
   using (auth.uid() = buyer_id or auth.uid() = owner_id)
@@ -177,6 +207,7 @@ create policy "messages_select_party" on public.messages for select
 create policy "messages_insert_party" on public.messages for insert
   with check (
     sender_id = auth.uid()
+    and not public.is_banned()
     and exists (
       select 1 from public.conversations c
       where c.id = conversation_id and (c.buyer_id = auth.uid() or c.owner_id = auth.uid())
@@ -266,6 +297,7 @@ drop policy if exists "ratings_insert_party" on public.ratings;
 create policy "ratings_select_all" on public.ratings for select using (true);
 create policy "ratings_insert_party" on public.ratings for insert with check (
   rater_id = auth.uid()
+  and not public.is_banned()
   and exists (
     select 1 from public.conversations c
     where c.id = conversation_id

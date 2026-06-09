@@ -1,10 +1,13 @@
 // Need-It-Now — admin dashboard (gated; read-only monitoring).
 import { amIAdmin, adminListReports, adminListUsers, adminListListings, adminGetConversation,
-         setReportStatus, setListingHidden, adminDeleteListing } from "./api.js";
+         setReportStatus, setListingHidden, adminDeleteListing,
+         banUser, unbanUser, adminListBanned, getProfile } from "./api.js";
 import { go, toast } from "./auth.js";
 import { avatarHTML } from "./avatar.js";
 import { resolveZip } from "./config.js";
 import { starBadge } from "./stars.js";
+
+var meId = null;
 
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
   return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -72,6 +75,10 @@ async function renderUsers(panel) {
   var users = await adminListUsers();
   var listings = [];
   try { listings = await adminListListings(); } catch (e) { /* */ }
+  var banned = [];
+  try { banned = await adminListBanned(); } catch (e) { /* */ }
+  var bannedSet = {};
+  banned.forEach(function (b) { bannedSet[b.user_id] = true; });
   var counts = {};
   listings.forEach(function (l) { if (l.user_id) counts[l.user_id] = (counts[l.user_id] || 0) + 1; });
   if (!users.length) { panel.innerHTML = '<p class="muted">No users.</p>'; return; }
@@ -79,14 +86,36 @@ async function renderUsers(panel) {
     var coord = await resolveZip(u.zip);
     var loc = coord ? coord.city : (u.zip || "");
     var n = counts[u.id] || 0;
-    return '<div class="admin-row">' + avatarHTML(u, "md") + '<div class="admin-row__main">' +
-      '<div><a href="profile.html?u=' + u.id + '"><strong>' + esc(u.name) + "</strong></a> " +
-        starBadge(u.rating_avg, u.rating_count) + "</div>" +
-      '<div class="admin-meta muted">' + esc(loc) + " · joined " + monthYear(u.created_at) +
-        " · " + n + " listing" + (n === 1 ? "" : "s") + "</div>" +
+    var isBanned = !!bannedSet[u.id];
+    var btn = (u.id === meId) ? '<span class="muted">you</span>'
+      : (isBanned
+          ? '<button class="btn btn--ghost btn--sm" data-unban="' + u.id + '">Unban</button>'
+          : '<button class="btn btn--ghost btn--sm" data-ban="' + u.id + '">Ban</button>');
+    return '<div class="admin-row' + (isBanned ? " admin-row--done" : "") + '">' + avatarHTML(u, "md") +
+      '<div class="admin-row__main">' +
+        '<div><a href="profile.html?u=' + u.id + '"><strong>' + esc(u.name) + "</strong></a> " +
+          starBadge(u.rating_avg, u.rating_count) +
+          (isBanned ? ' <span class="status status--banned">banned</span>' : "") + "</div>" +
+        '<div class="admin-meta muted">' + esc(loc) + " · joined " + monthYear(u.created_at) +
+          " · " + n + " listing" + (n === 1 ? "" : "s") + "</div>" +
+        '<div class="admin-meta">' + btn + "</div>" +
       "</div></div>";
   }));
   panel.innerHTML = parts.join("");
+  panel.querySelectorAll("[data-ban]").forEach(function (b) {
+    b.addEventListener("click", async function () {
+      var reason = window.prompt("Reason for banning (optional):", "");
+      if (reason === null) return;
+      try { await banUser(b.getAttribute("data-ban"), reason); renderUsers(panel); }
+      catch (e) { toast("Couldn't ban user."); }
+    });
+  });
+  panel.querySelectorAll("[data-unban]").forEach(function (b) {
+    b.addEventListener("click", async function () {
+      try { await unbanUser(b.getAttribute("data-unban")); renderUsers(panel); }
+      catch (e) { toast("Couldn't unban user."); }
+    });
+  });
 }
 
 async function renderListings(panel) {
@@ -139,6 +168,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   var panel = document.getElementById("admin-panel");
   if (!panel) return;
   if (!(await amIAdmin())) { go("pages/feed.html"); return; }
+  try { var me = await getProfile(); meId = me && me.id; } catch (e) { /* */ }
   document.querySelectorAll(".tab").forEach(function (t) {
     t.addEventListener("click", function () { showTab(t.getAttribute("data-tab")); });
   });
