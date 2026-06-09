@@ -2,6 +2,7 @@
 import { myConversations } from "./api.js";
 import { requireAuth } from "./auth.js";
 import { openChatForConversation } from "./chat.js";
+import { avatarHTML } from "./avatar.js";
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -18,12 +19,12 @@ function timeAgo(iso) {
 }
 
 function rowHTML(c) {
-  var who = c.iAmOwner ? (c.buyer && c.buyer.name) || "Buyer"
-                       : (c.owner && c.owner.name) || "Seller";
+  var other = c.iAmOwner ? c.buyer : c.owner;
+  var who = (other && other.name) || (c.iAmOwner ? "Buyer" : "Seller");
   var title = c.listing ? c.listing.title : "Listing";
   var snippet = c.last_body || "No messages yet";
   return '<button class="thread" data-id="' + c.id + '">' +
-    '<span class="thread__emoji">' + ((c.listing && c.listing.emoji) || "📦") + "</span>" +
+    avatarHTML({ name: who, avatar_path: other && other.avatar_path }, "md") +
     '<span class="thread__body">' +
       '<span class="thread__top"><strong>' + esc(who) + "</strong>" +
       '<span class="muted thread__time">' + timeAgo(c.last_message_at) + "</span></span>" +

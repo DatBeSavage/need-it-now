@@ -11,6 +11,9 @@ create table if not exists public.profiles (
   created_at  timestamptz not null default now()
 );
 
+alter table public.profiles add column if not exists avatar_path text;
+alter table public.profiles add column if not exists bio text not null default '';
+
 create table if not exists public.listings (
   id             uuid primary key default gen_random_uuid(),
   user_id        uuid references public.profiles (id) on delete set null,
@@ -215,6 +218,9 @@ end $$;
 -- Returns listings within radius_mi of (origin_lat, origin_lng),
 -- filtered by type + search, with a computed distance, nearest first.
 -- ============================================================
+drop function if exists public.nearby_listings(
+  double precision, double precision, double precision, text, text);
+
 create or replace function public.nearby_listings(
   origin_lat   double precision,
   origin_lng   double precision,
@@ -223,31 +229,19 @@ create or replace function public.nearby_listings(
   q            text default ''
 )
 returns table (
-  id             uuid,
-  user_id        uuid,
-  owner_name     text,
-  type           text,
-  title          text,
-  description    text,
-  price          integer,
-  category       text,
-  emoji          text,
-  zip            text,
-  lat            double precision,
-  lng            double precision,
-  response_count integer,
-  created_at     timestamptz,
-  distance_mi    double precision
+  id uuid, user_id uuid, owner_name text, type text, title text, description text,
+  price integer, category text, emoji text, zip text, lat double precision,
+  lng double precision, response_count integer, created_at timestamptz,
+  owner_avatar text, distance_mi double precision
 )
-language sql
-stable
-as $$
+language sql stable as $$
   select *
   from (
     select
       l.id, l.user_id, l.owner_name, l.type, l.title, l.description,
       l.price, l.category, l.emoji, l.zip, l.lat, l.lng,
       l.response_count, l.created_at,
+      p.avatar_path as owner_avatar,
       case
         when l.lat is null or l.lng is null
           or origin_lat is null or origin_lng is null then null
@@ -258,6 +252,7 @@ as $$
         ))
       end as distance_mi
     from public.listings l
+    left join public.profiles p on p.id = l.user_id
     where (type_filter = 'all' or l.type = type_filter)
       and (
         coalesce(q, '') = ''
@@ -272,3 +267,28 @@ $$;
 grant execute on function public.nearby_listings(
   double precision, double precision, double precision, text, text
 ) to anon, authenticated;
+
+-- ============================================================
+-- Avatars storage bucket (public read; users write only their own folder)
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+drop policy if exists "avatars_public_read" on storage.objects;
+drop policy if exists "avatars_insert_own"  on storage.objects;
+drop policy if exists "avatars_update_own"  on storage.objects;
+drop policy if exists "avatars_delete_own"  on storage.objects;
+
+create policy "avatars_public_read" on storage.objects
+  for select using (bucket_id = 'avatars');
+create policy "avatars_insert_own" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text);
+create policy "avatars_update_own" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text)
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text);
+create policy "avatars_delete_own" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text);

@@ -1,6 +1,7 @@
 // Need-It-Now — reusable real-time chat panel.
 import { getOrCreateConversation, getMessages, sendMessage, subscribeMessages, getProfile } from "./api.js";
 import { toast, base } from "./auth.js";
+import { avatarHTML } from "./avatar.js";
 
 var meId = null, unsub = null, seen = {};
 
@@ -20,7 +21,7 @@ function modal() {
   m.id = "chat-modal"; m.className = "modal-back";
   m.innerHTML =
     '<div class="chat card" role="dialog" aria-modal="true">' +
-      '<header class="chat__head"><div>' +
+      '<header class="chat__head"><span class="chat__av" data-av></span><div>' +
         '<strong class="chat__who" data-who></strong>' +
         '<span class="chat__sub muted" data-sub></span></div>' +
         '<button class="chat__close" data-close aria-label="Close">✕</button></header>' +
@@ -62,13 +63,14 @@ function listen(log, convId) {
 }
 
 // opts: { conv } for an existing thread, or { listing } for a lazy new thread.
-async function openPanel(opts, who, sub) {
+async function openPanel(opts, person, sub) {
   var profile = await getProfile();
   if (!profile) { location.href = base() + "pages/login.html"; return; }
   meId = profile.id; seen = {};
   var conv = opts.conv || null;
   var m = modal(), log = m.querySelector("[data-log]"), input = m.querySelector("[data-input]");
-  m.querySelector("[data-who]").textContent = who;
+  m.querySelector("[data-av]").innerHTML = avatarHTML(person, "md");
+  m.querySelector("[data-who]").textContent = person.name;
   m.querySelector("[data-sub]").textContent = sub;
   log.innerHTML = '<div class="chat__empty">Say hello 👋</div>';
   m.classList.add("open");
@@ -94,14 +96,15 @@ async function openPanel(opts, who, sub) {
 }
 
 export async function openChatForListing(listing) {
-  var who = listing.owner_name || "Seller";
+  var person = { name: listing.owner_name || "Seller", avatar_path: listing.owner_avatar };
   var sub = (listing.type === "sell" ? "Re: " : "You have: ") + listing.title;
-  try { await openPanel({ listing: listing }, who, sub); }
+  try { await openPanel({ listing: listing }, person, sub); }
   catch (err) { toast((err && err.message) || "Couldn't open chat."); }
 }
 
 export function openChatForConversation(conv) {
-  var who = conv.iAmOwner ? ((conv.buyer && conv.buyer.name) || "Buyer")
-                          : ((conv.owner && conv.owner.name) || "Seller");
-  openPanel({ conv: conv }, who, "Re: " + (conv.listing ? conv.listing.title : "Listing"));
+  var other = conv.iAmOwner ? conv.buyer : conv.owner;
+  var person = { name: (other && other.name) || (conv.iAmOwner ? "Buyer" : "Seller"),
+                 avatar_path: other && other.avatar_path };
+  openPanel({ conv: conv }, person, "Re: " + (conv.listing ? conv.listing.title : "Listing"));
 }

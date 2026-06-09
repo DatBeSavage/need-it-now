@@ -42,6 +42,10 @@ export async function getProfile() {
     email: user.email,
     name: (data && data.name) || "Neighbor",
     zip: (data && data.zip) || "",
+    bio: (data && data.bio) || "",
+    avatar_path: (data && data.avatar_path) || null,
+    avatarUrl: (data && data.avatar_path)
+      ? SUPABASE_URL + "/storage/v1/object/public/avatars/" + data.avatar_path : null,
   };
 }
 
@@ -86,6 +90,63 @@ export async function updateListing(id, patch) {
 export async function deleteListing(id) {
   const { error } = await supabase.from("listings").delete().eq("id", id);
   if (error) throw error;
+}
+
+/* ---------------- Profiles & avatars ---------------- */
+export async function updateProfile(patch) {
+  const profile = await getProfile();
+  if (!profile) throw new Error("Please log in.");
+  const fields = {};
+  if (patch.name != null) fields.name = patch.name;
+  if (patch.zip != null) fields.zip = patch.zip;
+  if (patch.bio != null) fields.bio = patch.bio;
+  const { error } = await supabase.from("profiles").update(fields).eq("id", profile.id);
+  if (error) throw error;
+}
+
+export async function getProfileById(userId) {
+  const { data, error } = await supabase.from("profiles")
+    .select("id,name,zip,bio,avatar_path,created_at").eq("id", userId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function listingsByUser(userId) {
+  const { data, error } = await supabase.from("listings")
+    .select("*").eq("user_id", userId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+function _resizeToBlob(file, size) {
+  return new Promise(function (resolve, reject) {
+    const img = new Image();
+    img.onload = function () {
+      const c = document.createElement("canvas");
+      c.width = size; c.height = size;
+      const ctx = c.getContext("2d");
+      const s = Math.min(img.width, img.height);
+      ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      c.toBlob(function (b) { b ? resolve(b) : reject(new Error("Image processing failed.")); }, "image/jpeg", 0.85);
+    };
+    img.onerror = function () { reject(new Error("Couldn't read that image.")); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+export async function uploadAvatar(file) {
+  const profile = await getProfile();
+  if (!profile) throw new Error("Please log in.");
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error("Use a JPG, PNG, or WebP image.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5 MB.");
+  const blob = await _resizeToBlob(file, 512);
+  const path = profile.id + "/" + Date.now() + ".jpg";
+  const up = await supabase.storage.from("avatars").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+  if (up.error) throw up.error;
+  const { error } = await supabase.from("profiles").update({ avatar_path: path }).eq("id", profile.id);
+  if (error) throw error;
+  if (profile.avatar_path) supabase.storage.from("avatars").remove([profile.avatar_path]);
+  return SUPABASE_URL + "/storage/v1/object/public/avatars/" + path;
 }
 
 /* ---------------- Conversations & messages ---------------- */
@@ -147,8 +208,8 @@ export async function myConversations() {
   const { data, error } = await supabase
     .from("conversations")
     .select("*, listing:listings(id,title,emoji,type,price), " +
-            "buyer:profiles!conversations_buyer_id_fkey(name), " +
-            "owner:profiles!conversations_owner_id_fkey(name)")
+            "buyer:profiles!conversations_buyer_id_fkey(name,avatar_path), " +
+            "owner:profiles!conversations_owner_id_fkey(name,avatar_path)")
     .order("last_message_at", { ascending: false });
   if (error) throw error;
   return (data || []).map(function (c) {

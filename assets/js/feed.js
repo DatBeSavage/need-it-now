@@ -4,6 +4,7 @@ import { resolveZip } from "./config.js";
 import { fillZipDatalist } from "./zips.js";
 import { toast, go } from "./auth.js";
 import { openChatForListing } from "./chat.js";
+import { avatarHTML } from "./avatar.js";
 
 var state = { zip: "78701", radius: 25, type: "all", q: "" };
 var currentProfile = null;
@@ -54,7 +55,15 @@ function cardHTML(row) {
         '<h3 class="listing__title">' + escapeHTML(row.title) + "</h3>" +
         '<p class="listing__desc">' + escapeHTML(row.description) + "</p>" +
         '<div class="listing__meta">' +
-          "<span>" + escapeHTML(row.owner_name) + " · " + timeAgo(row.created_at) + "</span>" +
+          "<span>" +
+          (function () {
+            var person = { name: row.owner_name, avatar_path: row.owner_avatar };
+            var inner = avatarHTML(person, "sm") + "<span>" + escapeHTML(row.owner_name) + "</span>";
+            return row.user_id
+              ? '<a class="owner" href="profile.html?u=' + row.user_id + '">' + inner + "</a>"
+              : '<span class="owner">' + inner + "</span>";
+          })() + " · " + timeAgo(row.created_at) +
+          "</span>" +
           '<span class="pin">📍 ' + distTxt + "</span>" +
         "</div>" +
       "</div>" +

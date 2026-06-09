@@ -2,17 +2,13 @@
 import { signUp, signIn, signOut, getProfile } from "./api.js";
 import { resolveZip } from "./config.js";
 import { wireZipInput } from "./zips.js";
+import { avatarHTML, initials } from "./avatar.js";
 
 /* Resolve relative path depending on page depth (root vs /pages/). */
 export function base() {
   return location.pathname.indexOf("/pages/") !== -1 ? "../" : "";
 }
 export function go(path) { location.href = base() + path; }
-
-function initials(name) {
-  return String(name || "?").trim().split(/\s+/).slice(0, 2)
-    .map(function (p) { return p[0]; }).join("").toUpperCase();
-}
 
 export function toast(msg) {
   var t = document.querySelector(".toast");
@@ -40,7 +36,8 @@ async function renderNavUser() {
     slot.innerHTML =
       '<a href="' + base() + 'pages/messages.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--ink-2);text-decoration:none;padding:.5rem .8rem">Messages</a>' +
       '<a class="btn btn--money btn--sm" href="' + base() + 'pages/post.html">+ Post</a>' +
-      '<span class="nav__avatar" title="' + profile.name + '">' + initials(profile.name) + "</span>" +
+      '<a href="' + base() + 'pages/profile.html" class="nav__avatar-link" title="' + profile.name + '">' +
+        avatarHTML(profile, "sm") + "</a>" +
       '<a href="#" data-logout style="font-weight:700;font-size:var(--fs-sm);color:var(--muted);text-decoration:none">Log out</a>';
     slot.querySelector("[data-logout]").addEventListener("click", async function (e) {
       e.preventDefault(); await signOut(); go("pages/login.html");
