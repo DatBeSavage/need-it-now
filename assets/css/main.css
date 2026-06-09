@@ -413,3 +413,10 @@ input[type="range"] { width: 100%; accent-color: var(--blue-600); }
 .admin-chat { margin-top: var(--sp-2); padding: var(--sp-3); background: var(--bg);
   border: 1px solid var(--border); border-radius: var(--r-sm); display: flex; flex-direction: column; gap: 4px; }
 .admin-msg { font-size: var(--fs-sm); }
+
+/* ---- Admin moderation ---- */
+.status { font-size: var(--fs-xs); font-weight: 800; padding: 1px 8px; border-radius: var(--r-pill); text-transform: capitalize; }
+.status--open { background: var(--blue-050); color: var(--blue-700); }
+.status--resolved { background: var(--green-050); color: var(--green-700); }
+.status--dismissed { background: var(--surface-2); color: var(--muted); }
+.admin-row--done { opacity: .62; }

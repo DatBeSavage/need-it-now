@@ -33,6 +33,8 @@ create table if not exists public.listings (
   created_at     timestamptz not null default now()
 );
 
+alter table public.listings add column if not exists hidden boolean not null default false;
+
 create index if not exists listings_type_idx       on public.listings (type);
 create index if not exists listings_created_idx     on public.listings (created_at desc);
 
@@ -57,8 +59,10 @@ drop policy if exists "listings_update_own"  on public.listings;
 drop policy if exists "listings_delete_own"  on public.listings;
 create policy "listings_select_all" on public.listings for select using (true);
 create policy "listings_insert_own" on public.listings for insert with check (auth.uid() = user_id);
-create policy "listings_update_own" on public.listings for update using (auth.uid() = user_id);
-create policy "listings_delete_own" on public.listings for delete using (auth.uid() = user_id);
+create policy "listings_update_own" on public.listings for update
+  using (auth.uid() = user_id or public.is_admin());
+create policy "listings_delete_own" on public.listings for delete
+  using (auth.uid() = user_id or public.is_admin());
 
 -- ============================================================
 -- Admin identity  (Admin Increment A)
@@ -304,6 +308,9 @@ create table if not exists public.reports (
 );
 create index if not exists reports_reported_idx on public.reports (reported_user_id, created_at desc);
 
+alter table public.reports  add column if not exists status text not null default 'open'
+  check (status in ('open','resolved','dismissed'));
+
 alter table public.reports enable row level security;
 
 drop policy if exists "reports_insert_own" on public.reports;
@@ -313,6 +320,10 @@ create policy "reports_insert_own" on public.reports for insert with check (
 );
 create policy "reports_select_own" on public.reports for select
   using (reporter_id = auth.uid() or public.is_admin());
+
+drop policy if exists "reports_update_admin" on public.reports;
+create policy "reports_update_admin" on public.reports for update
+  using (public.is_admin()) with check (public.is_admin());
 
 -- ============================================================
 -- Location/radius API: nearby_listings()
@@ -357,6 +368,7 @@ language sql stable as $$
     from public.listings l
     left join public.profiles p on p.id = l.user_id
     where (type_filter = 'all' or l.type = type_filter)
+      and not l.hidden
       and (
         coalesce(q, '') = ''
         or l.title ilike '%' || q || '%'

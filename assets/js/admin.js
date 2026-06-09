@@ -1,6 +1,7 @@
 // Need-It-Now — admin dashboard (gated; read-only monitoring).
-import { amIAdmin, adminListReports, adminListUsers, adminListListings, adminGetConversation } from "./api.js";
-import { go } from "./auth.js";
+import { amIAdmin, adminListReports, adminListUsers, adminListListings, adminGetConversation,
+         setReportStatus, setListingHidden, adminDeleteListing } from "./api.js";
+import { go, toast } from "./auth.js";
 import { avatarHTML } from "./avatar.js";
 import { resolveZip } from "./config.js";
 import { starBadge } from "./stars.js";
@@ -18,18 +19,25 @@ async function renderReports(panel) {
   panel.innerHTML = rows.map(function (r) {
     var reporter = (r.reporter && r.reporter.name) || "Someone";
     var reported = (r.reported && r.reported.name) || "user";
+    var status = r.status || "open";
     var ctx = "";
     if (r.listing) ctx += '<span class="muted">Listing: ' + esc(r.listing.title) + "</span>";
     if (r.conversation_id) ctx += '<button class="btn btn--ghost btn--sm" data-chat="' + r.conversation_id + '">View chat</button>';
-    return '<div class="admin-row"><div class="admin-row__main">' +
+    var actions = status === "open"
+      ? '<button class="btn btn--ghost btn--sm" data-resolve="' + r.id + '">Resolve</button>' +
+        '<button class="btn btn--ghost btn--sm" data-dismiss="' + r.id + '">Dismiss</button>'
+      : "";
+    return '<div class="admin-row' + (status !== "open" ? " admin-row--done" : "") + '"><div class="admin-row__main">' +
       "<div><strong>" + esc(reporter) + "</strong> reported " +
         '<a href="profile.html?u=' + r.reported_user_id + '"><strong>' + esc(reported) + "</strong></a> " +
-        '<span class="badge badge--buy">' + esc(r.reason) + "</span></div>" +
+        '<span class="badge badge--buy">' + esc(r.reason) + "</span> " +
+        '<span class="status status--' + status + '">' + status + "</span></div>" +
       (r.details ? '<p class="muted">' + esc(r.details) + "</p>" : "") +
-      '<div class="admin-meta">' + ctx + '<span class="muted">' + dateShort(r.created_at) + "</span></div>" +
+      '<div class="admin-meta">' + ctx + actions + '<span class="muted">' + dateShort(r.created_at) + "</span></div>" +
       '<div class="admin-chat" data-chatbox="' + (r.conversation_id || "") + '" hidden></div>' +
       "</div></div>";
   }).join("");
+
   panel.querySelectorAll("[data-chat]").forEach(function (btn) {
     btn.addEventListener("click", async function () {
       var id = btn.getAttribute("data-chat");
@@ -43,6 +51,18 @@ async function renderReports(panel) {
           ? msgs.map(function (m) { return '<div class="admin-msg"><strong>' + esc(m.sender_name) + ":</strong> " + esc(m.body) + "</div>"; }).join("")
           : '<p class="muted">No messages.</p>';
       } catch (e) { box.innerHTML = '<p class="muted">Couldn\'t load chat.</p>'; }
+    });
+  });
+  panel.querySelectorAll("[data-resolve]").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      try { await setReportStatus(btn.getAttribute("data-resolve"), "resolved"); renderReports(panel); }
+      catch (e) { toast("Couldn't update report."); }
+    });
+  });
+  panel.querySelectorAll("[data-dismiss]").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      try { await setReportStatus(btn.getAttribute("data-dismiss"), "dismissed"); renderReports(panel); }
+      catch (e) { toast("Couldn't update report."); }
     });
   });
 }
@@ -77,13 +97,33 @@ async function renderListings(panel) {
     var owner = l.user_id
       ? '<a href="profile.html?u=' + l.user_id + '">' + esc(l.owner_name) + "</a>"
       : esc(l.owner_name) + " (demo)";
-    return '<div class="admin-row"><span class="admin-emoji">' + (l.emoji || "📦") + "</span>" +
+    return '<div class="admin-row' + (l.hidden ? " admin-row--done" : "") + '">' +
+      '<span class="admin-emoji">' + (l.emoji || "📦") + "</span>" +
       '<div class="admin-row__main">' +
         "<div><strong>" + esc(l.title) + "</strong> · " +
-          (l.type === "sell" ? money(l.price) : "Budget " + money(l.price)) + "</div>" +
+          (l.type === "sell" ? money(l.price) : "Budget " + money(l.price)) +
+          (l.hidden ? ' <span class="status status--dismissed">hidden</span>' : "") + "</div>" +
         '<div class="admin-meta muted">' + owner + " · " + esc(l.zip || "") + " · " + dateShort(l.created_at) + "</div>" +
+        '<div class="admin-meta">' +
+          '<button class="btn btn--ghost btn--sm" data-hide="' + l.id + '" data-h="' + (l.hidden ? "1" : "0") + '">' +
+            (l.hidden ? "Unhide" : "Hide") + "</button>" +
+          '<button class="btn btn--ghost btn--sm" data-del="' + l.id + '">Delete</button>' +
+        "</div>" +
       "</div></div>";
   }).join("");
+  panel.querySelectorAll("[data-hide]").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      try { await setListingHidden(btn.getAttribute("data-hide"), btn.getAttribute("data-h") !== "1"); renderListings(panel); }
+      catch (e) { toast("Couldn't update listing."); }
+    });
+  });
+  panel.querySelectorAll("[data-del]").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      if (!window.confirm("Delete this listing permanently?")) return;
+      try { await adminDeleteListing(btn.getAttribute("data-del")); renderListings(panel); }
+      catch (e) { toast("Couldn't delete listing."); }
+    });
+  });
 }
 
 var RENDER = { reports: renderReports, users: renderUsers, listings: renderListings };

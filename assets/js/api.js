@@ -300,7 +300,7 @@ export async function adminListUsers() {
 
 export async function adminListListings() {
   const { data, error } = await supabase.from("listings")
-    .select("id,user_id,owner_name,type,title,price,zip,emoji,created_at")
+    .select("id,user_id,owner_name,type,title,price,zip,emoji,hidden,created_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data || [];
@@ -313,4 +313,19 @@ export async function adminGetConversation(conversationId) {
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data || [];
+}
+
+export async function setReportStatus(reportId, status) {
+  const { error } = await supabase.from("reports").update({ status: status }).eq("id", reportId);
+  if (error) throw error;
+}
+
+export async function setListingHidden(listingId, hidden) {
+  const { error } = await supabase.from("listings").update({ hidden: hidden }).eq("id", listingId);
+  if (error) throw error;
+}
+
+export async function adminDeleteListing(listingId) {
+  const { error } = await supabase.from("listings").delete().eq("id", listingId);
+  if (error) throw error;
 }
