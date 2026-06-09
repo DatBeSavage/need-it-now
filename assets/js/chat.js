@@ -3,6 +3,7 @@ import { getOrCreateConversation, getMessages, sendMessage, subscribeMessages, g
          markDealt, getMyRating, createRating } from "./api.js";
 import { toast, base } from "./auth.js";
 import { avatarHTML } from "./avatar.js";
+import { openReport } from "./report.js";
 
 var meId = null, unsub = null, seen = {};
 
@@ -25,6 +26,7 @@ function modal() {
       '<header class="chat__head"><span class="chat__av" data-av></span><div>' +
         '<strong class="chat__who" data-who></strong>' +
         '<span class="chat__sub muted" data-sub></span></div>' +
+        '<button class="chat__report" data-report-user title="Report user">⚑</button>' +
         '<button class="chat__close" data-close aria-label="Close">✕</button></header>' +
       '<div class="chat__log" data-log></div>' +
       '<div class="deal" data-deal></div>' +
@@ -128,6 +130,12 @@ async function openPanel(opts, person, sub) {
   m.querySelector("[data-av]").innerHTML = avatarHTML(person, "md");
   m.querySelector("[data-who]").textContent = person.name;
   m.querySelector("[data-sub]").textContent = sub;
+  var reporteeId = conv ? (conv.buyer_id === meId ? conv.owner_id : conv.buyer_id)
+                        : (opts.listing && opts.listing.user_id);
+  m.querySelector("[data-report-user]").onclick = function () {
+    if (reporteeId) openReport({ reportedUserId: reporteeId, reportedName: person.name,
+      conversationId: conv && conv.id });
+  };
   log.innerHTML = '<div class="chat__empty">Say hello 👋</div>';
   m.classList.add("open");
 

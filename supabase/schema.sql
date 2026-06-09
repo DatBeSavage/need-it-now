@@ -264,6 +264,31 @@ create trigger trg_recompute_rating
   for each row execute function public.recompute_rating();
 
 -- ============================================================
+-- Reporting: reports  (Phase 2)
+-- ============================================================
+create table if not exists public.reports (
+  id               uuid primary key default gen_random_uuid(),
+  reporter_id      uuid not null references public.profiles (id) on delete cascade,
+  reported_user_id uuid not null references public.profiles (id) on delete cascade,
+  reason           text not null check (reason in ('spam','harassment','scam','other')),
+  details          text not null default '',
+  listing_id       uuid references public.listings (id) on delete set null,
+  conversation_id  uuid references public.conversations (id) on delete set null,
+  message_id       uuid references public.messages (id) on delete set null,
+  created_at       timestamptz not null default now()
+);
+create index if not exists reports_reported_idx on public.reports (reported_user_id, created_at desc);
+
+alter table public.reports enable row level security;
+
+drop policy if exists "reports_insert_own" on public.reports;
+drop policy if exists "reports_select_own" on public.reports;
+create policy "reports_insert_own" on public.reports for insert with check (
+  reporter_id = auth.uid() and reporter_id <> reported_user_id
+);
+create policy "reports_select_own" on public.reports for select using (reporter_id = auth.uid());
+
+-- ============================================================
 -- Location/radius API: nearby_listings()
 -- Returns listings within radius_mi of (origin_lat, origin_lng),
 -- filtered by type + search, with a computed distance, nearest first.

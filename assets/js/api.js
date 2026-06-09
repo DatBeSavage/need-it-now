@@ -254,3 +254,20 @@ export async function ratingsForUser(userId) {
   if (error) throw error;
   return data || [];
 }
+
+/* ---------------- Reporting ---------------- */
+export async function createReport({ reportedUserId, reason, details, listingId, conversationId, messageId }) {
+  const profile = await getProfile();
+  if (!profile) throw new Error("Please log in.");
+  if (reportedUserId === profile.id) throw new Error("You can't report yourself.");
+  const { error } = await supabase.from("reports").insert({
+    reporter_id: profile.id,
+    reported_user_id: reportedUserId,
+    reason: reason,
+    details: (details || "").trim(),
+    listing_id: listingId || null,
+    conversation_id: conversationId || null,
+    message_id: messageId || null,
+  });
+  if (error) throw error;
+}

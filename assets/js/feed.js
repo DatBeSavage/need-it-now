@@ -6,6 +6,7 @@ import { toast, go } from "./auth.js";
 import { openChatForListing } from "./chat.js";
 import { avatarHTML } from "./avatar.js";
 import { starBadge } from "./stars.js";
+import { openReport } from "./report.js";
 
 var state = { zip: "78701", radius: 25, type: "all", q: "" };
 var currentProfile = null;
@@ -72,6 +73,8 @@ function cardHTML(row) {
       '<div class="listing__foot">' + actionHTML(row) +
         '<span class="muted" style="font-size:var(--fs-xs);white-space:nowrap">' +
           (row.response_count || 0) + " ↩</span>" +
+        ((row.user_id && !isMine(row))
+          ? '<button class="link-report" data-report="' + row.id + '" title="Report listing">⚑</button>' : "") +
       "</div>" +
     "</article>";
 }
@@ -131,6 +134,9 @@ async function render() {
   grid.querySelectorAll("[data-delete]").forEach(function (btn) {
     btn.addEventListener("click", function () { confirmDelete(btn.getAttribute("data-delete")); });
   });
+  grid.querySelectorAll("[data-report]").forEach(function (btn) {
+    btn.addEventListener("click", function () { reportListing(btn.getAttribute("data-report")); });
+  });
 }
 
 async function confirmDelete(id) {
@@ -142,6 +148,13 @@ async function confirmDelete(id) {
   } catch (e) {
     toast((e && e.message) || "Couldn't delete — try again.");
   }
+}
+
+function reportListing(id) {
+  var row = lastRows.filter(function (r) { return r.id === id; })[0];
+  if (!row) return;
+  if (!currentProfile) { go("pages/login.html?next=/pages/feed.html"); return; }
+  openReport({ reportedUserId: row.user_id, reportedName: row.owner_name, listingId: row.id });
 }
 
 var renderTimer;

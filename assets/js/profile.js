@@ -5,6 +5,7 @@ import { resolveZip } from "./config.js";
 import { wireZipInput } from "./zips.js";
 import { avatarHTML } from "./avatar.js";
 import { toast, go, base } from "./auth.js";
+import { openReport } from "./report.js";
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -42,12 +43,17 @@ async function renderPublic(root, p) {
         '<p class="muted">' + esc(loc) + (loc ? " · " : "") + "Member since " + monthYear(p.created_at) + "</p>" +
         (p.bio ? '<p class="profile-bio">' + esc(p.bio) + "</p>" : "") +
         '<div class="profile-rating">' + starsHTML(p.rating_avg, p.rating_count, "md") + "</div>" +
+        '<button class="btn btn--ghost btn--sm" data-report-user style="margin-top:var(--sp-3)">⚑ Report</button>' +
       "</div>" +
     "</div>" +
     '<h2 class="profile-sub">Listings</h2><div class="minis" data-listings></div>' +
     '<h2 class="profile-sub">Reviews</h2><div class="reviews" data-reviews></div>';
   renderListings(root.querySelector("[data-listings]"), p.id, false);
   renderReviews(root.querySelector("[data-reviews]"), p.id);
+  var rb = root.querySelector("[data-report-user]");
+  if (rb) rb.addEventListener("click", function () {
+    openReport({ reportedUserId: p.id, reportedName: p.name });
+  });
 }
 
 async function renderReviews(box, userId) {
