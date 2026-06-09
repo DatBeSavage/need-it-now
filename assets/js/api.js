@@ -271,3 +271,46 @@ export async function createReport({ reportedUserId, reason, details, listingId,
   });
   if (error) throw error;
 }
+
+/* ---------------- Admin (read-only monitoring; RLS-gated) ---------------- */
+export async function amIAdmin() {
+  const user = await getUser();
+  if (!user) return false;
+  const { data } = await supabase.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
+  return !!data;
+}
+
+export async function adminListReports() {
+  const { data, error } = await supabase.from("reports")
+    .select("*, reporter:profiles!reports_reporter_id_fkey(name,avatar_path), " +
+            "reported:profiles!reports_reported_user_id_fkey(name,avatar_path), " +
+            "listing:listings(id,title)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminListUsers() {
+  const { data, error } = await supabase.from("profiles")
+    .select("id,name,zip,avatar_path,rating_avg,rating_count,created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminListListings() {
+  const { data, error } = await supabase.from("listings")
+    .select("id,user_id,owner_name,type,title,price,zip,emoji,created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminGetConversation(conversationId) {
+  const { data, error } = await supabase.from("messages")
+    .select("sender_name,sender_id,body,created_at")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}

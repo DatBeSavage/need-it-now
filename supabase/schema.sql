@@ -61,6 +61,28 @@ create policy "listings_update_own" on public.listings for update using (auth.ui
 create policy "listings_delete_own" on public.listings for delete using (auth.uid() = user_id);
 
 -- ============================================================
+-- Admin identity  (Admin Increment A)
+-- ============================================================
+create table if not exists public.admins (
+  user_id    uuid primary key references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+-- security definer: bypasses RLS on admins (avoids recursion with the policy
+-- below) and only ever reports on the calling user.
+create or replace function public.is_admin()
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.admins where user_id = auth.uid());
+$$;
+
+alter table public.admins enable row level security;
+drop policy if exists "admins_select" on public.admins;
+create policy "admins_select" on public.admins
+  for select using (user_id = auth.uid() or public.is_admin());
+-- NO insert/update/delete policies: only the SQL Editor (service role) can add admins.
+
+-- ============================================================
 -- Triggers
 -- ============================================================
 -- Auto-create a profile row when a new auth user signs up.
@@ -127,7 +149,7 @@ drop policy if exists "conversations_select_party" on public.conversations;
 drop policy if exists "conversations_insert_buyer" on public.conversations;
 drop policy if exists "conversations_update_party" on public.conversations;
 create policy "conversations_select_party" on public.conversations for select
-  using (auth.uid() = buyer_id or auth.uid() = owner_id);
+  using (auth.uid() = buyer_id or auth.uid() = owner_id or public.is_admin());
 create policy "conversations_insert_buyer" on public.conversations for insert
   with check (
     auth.uid() = buyer_id
@@ -141,10 +163,13 @@ create policy "conversations_update_party" on public.conversations for update
 drop policy if exists "messages_select_party" on public.messages;
 drop policy if exists "messages_insert_party" on public.messages;
 create policy "messages_select_party" on public.messages for select
-  using (exists (
-    select 1 from public.conversations c
-    where c.id = conversation_id and (c.buyer_id = auth.uid() or c.owner_id = auth.uid())
-  ));
+  using (
+    exists (
+      select 1 from public.conversations c
+      where c.id = conversation_id and (c.buyer_id = auth.uid() or c.owner_id = auth.uid())
+    )
+    or public.is_admin()
+  );
 create policy "messages_insert_party" on public.messages for insert
   with check (
     sender_id = auth.uid()
@@ -286,7 +311,8 @@ drop policy if exists "reports_select_own" on public.reports;
 create policy "reports_insert_own" on public.reports for insert with check (
   reporter_id = auth.uid() and reporter_id <> reported_user_id
 );
-create policy "reports_select_own" on public.reports for select using (reporter_id = auth.uid());
+create policy "reports_select_own" on public.reports for select
+  using (reporter_id = auth.uid() or public.is_admin());
 
 -- ============================================================
 -- Location/radius API: nearby_listings()

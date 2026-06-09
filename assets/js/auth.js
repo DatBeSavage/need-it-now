@@ -1,5 +1,5 @@
 // Need-It-Now — auth + shared nav state (Supabase-backed).
-import { signUp, signIn, signOut, getProfile } from "./api.js";
+import { signUp, signIn, signOut, getProfile, amIAdmin } from "./api.js";
 import { resolveZip } from "./config.js";
 import { wireZipInput } from "./zips.js";
 import { avatarHTML, initials } from "./avatar.js";
@@ -33,7 +33,12 @@ async function renderNavUser() {
   var profile = null;
   try { profile = await getProfile(); } catch (e) { /* offline / not logged in */ }
   if (profile) {
+    var adminLink = "";
+    try { if (await amIAdmin()) {
+      adminLink = '<a href="' + base() + 'pages/admin.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--blue-600);text-decoration:none;padding:.5rem .8rem">Admin</a>';
+    } } catch (e) { /* not admin */ }
     slot.innerHTML =
+      adminLink +
       '<a href="' + base() + 'pages/messages.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--ink-2);text-decoration:none;padding:.5rem .8rem">Messages</a>' +
       '<a class="btn btn--money btn--sm" href="' + base() + 'pages/post.html">+ Post</a>' +
       '<a href="' + base() + 'pages/profile.html" class="nav__avatar-link" title="' + profile.name + '">' +

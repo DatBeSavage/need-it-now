@@ -1,0 +1,106 @@
+// Need-It-Now — admin dashboard (gated; read-only monitoring).
+import { amIAdmin, adminListReports, adminListUsers, adminListListings, adminGetConversation } from "./api.js";
+import { go } from "./auth.js";
+import { avatarHTML } from "./avatar.js";
+import { resolveZip } from "./config.js";
+import { starBadge } from "./stars.js";
+
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+  return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function money(n) { return "$" + Number(n).toLocaleString("en-US"); }
+function dateShort(iso) { return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+function monthYear(iso) { return new Date(iso).toLocaleDateString("en-US", { month: "long", year: "numeric" }); }
+
+async function renderReports(panel) {
+  panel.innerHTML = '<p class="muted">Loading reports…</p>';
+  var rows = await adminListReports();
+  if (!rows.length) { panel.innerHTML = '<p class="muted">No reports yet.</p>'; return; }
+  panel.innerHTML = rows.map(function (r) {
+    var reporter = (r.reporter && r.reporter.name) || "Someone";
+    var reported = (r.reported && r.reported.name) || "user";
+    var ctx = "";
+    if (r.listing) ctx += '<span class="muted">Listing: ' + esc(r.listing.title) + "</span>";
+    if (r.conversation_id) ctx += '<button class="btn btn--ghost btn--sm" data-chat="' + r.conversation_id + '">View chat</button>';
+    return '<div class="admin-row"><div class="admin-row__main">' +
+      "<div><strong>" + esc(reporter) + "</strong> reported " +
+        '<a href="profile.html?u=' + r.reported_user_id + '"><strong>' + esc(reported) + "</strong></a> " +
+        '<span class="badge badge--buy">' + esc(r.reason) + "</span></div>" +
+      (r.details ? '<p class="muted">' + esc(r.details) + "</p>" : "") +
+      '<div class="admin-meta">' + ctx + '<span class="muted">' + dateShort(r.created_at) + "</span></div>" +
+      '<div class="admin-chat" data-chatbox="' + (r.conversation_id || "") + '" hidden></div>' +
+      "</div></div>";
+  }).join("");
+  panel.querySelectorAll("[data-chat]").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      var id = btn.getAttribute("data-chat");
+      var box = panel.querySelector('[data-chatbox="' + id + '"]');
+      if (!box) return;
+      if (!box.hidden) { box.hidden = true; return; }
+      box.hidden = false; box.innerHTML = '<p class="muted">Loading…</p>';
+      try {
+        var msgs = await adminGetConversation(id);
+        box.innerHTML = msgs.length
+          ? msgs.map(function (m) { return '<div class="admin-msg"><strong>' + esc(m.sender_name) + ":</strong> " + esc(m.body) + "</div>"; }).join("")
+          : '<p class="muted">No messages.</p>';
+      } catch (e) { box.innerHTML = '<p class="muted">Couldn\'t load chat.</p>'; }
+    });
+  });
+}
+
+async function renderUsers(panel) {
+  panel.innerHTML = '<p class="muted">Loading users…</p>';
+  var users = await adminListUsers();
+  var listings = [];
+  try { listings = await adminListListings(); } catch (e) { /* */ }
+  var counts = {};
+  listings.forEach(function (l) { if (l.user_id) counts[l.user_id] = (counts[l.user_id] || 0) + 1; });
+  if (!users.length) { panel.innerHTML = '<p class="muted">No users.</p>'; return; }
+  var parts = await Promise.all(users.map(async function (u) {
+    var coord = await resolveZip(u.zip);
+    var loc = coord ? coord.city : (u.zip || "");
+    var n = counts[u.id] || 0;
+    return '<div class="admin-row">' + avatarHTML(u, "md") + '<div class="admin-row__main">' +
+      '<div><a href="profile.html?u=' + u.id + '"><strong>' + esc(u.name) + "</strong></a> " +
+        starBadge(u.rating_avg, u.rating_count) + "</div>" +
+      '<div class="admin-meta muted">' + esc(loc) + " · joined " + monthYear(u.created_at) +
+        " · " + n + " listing" + (n === 1 ? "" : "s") + "</div>" +
+      "</div></div>";
+  }));
+  panel.innerHTML = parts.join("");
+}
+
+async function renderListings(panel) {
+  panel.innerHTML = '<p class="muted">Loading listings…</p>';
+  var rows = await adminListListings();
+  if (!rows.length) { panel.innerHTML = '<p class="muted">No listings.</p>'; return; }
+  panel.innerHTML = rows.map(function (l) {
+    var owner = l.user_id
+      ? '<a href="profile.html?u=' + l.user_id + '">' + esc(l.owner_name) + "</a>"
+      : esc(l.owner_name) + " (demo)";
+    return '<div class="admin-row"><span class="admin-emoji">' + (l.emoji || "📦") + "</span>" +
+      '<div class="admin-row__main">' +
+        "<div><strong>" + esc(l.title) + "</strong> · " +
+          (l.type === "sell" ? money(l.price) : "Budget " + money(l.price)) + "</div>" +
+        '<div class="admin-meta muted">' + owner + " · " + esc(l.zip || "") + " · " + dateShort(l.created_at) + "</div>" +
+      "</div></div>";
+  }).join("");
+}
+
+var RENDER = { reports: renderReports, users: renderUsers, listings: renderListings };
+
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(function (t) {
+    t.classList.toggle("active", t.getAttribute("data-tab") === name);
+  });
+  RENDER[name](document.getElementById("admin-panel"));
+}
+
+document.addEventListener("DOMContentLoaded", async function () {
+  var panel = document.getElementById("admin-panel");
+  if (!panel) return;
+  if (!(await amIAdmin())) { go("pages/feed.html"); return; }
+  document.querySelectorAll(".tab").forEach(function (t) {
+    t.addEventListener("click", function () { showTab(t.getAttribute("data-tab")); });
+  });
+  showTab("reports");
+});
