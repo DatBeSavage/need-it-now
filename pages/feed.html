@@ -19,9 +19,7 @@
       </a>
       <div class="nav__links">
         <a href="../index.html">Home</a>
-        <a href="feed.html" class="active">Browse</a>
-        <a href="post.html">Post</a>
-      </div>
+        <a href="feed.html" class="active">Browse</a>      </div>
       <div class="nav__user" data-nav-user></div>
     </div>
   </nav>
@@ -62,25 +60,7 @@
     <section id="listings" class="listings" style="margin-bottom:var(--sp-7)"></section>
   </main>
 
-  <!-- Respond modal -->
-  <div class="modal-back" id="respond-modal" role="dialog" aria-modal="true">
-    <form class="card modal">
-      <h3 data-modal-title>Respond</h3>
-      <p class="muted" data-modal-sub style="margin-bottom:var(--sp-4)"></p>
-      <div class="field">
-        <label for="m-msg">Your message</label>
-        <textarea class="textarea" id="m-msg" name="message" placeholder="Hi! Is this still available? I can meet up this week…"></textarea>
-      </div>
-      <div style="display:flex;gap:var(--sp-3);justify-content:flex-end">
-        <button type="button" class="btn btn--ghost" data-modal-close>Cancel</button>
-        <button type="submit" class="btn btn--primary">Send message</button>
-      </div>
-    </form>
-  </div>
-
-  <script src="../assets/js/store.js"></script>
-  <script src="../assets/js/seed.js"></script>
-  <script src="../assets/js/auth.js"></script>
-  <script src="../assets/js/feed.js"></script>
+  <script type="module" src="../assets/js/auth.js"></script>
+  <script type="module" src="../assets/js/feed.js"></script>
 </body>
 </html>

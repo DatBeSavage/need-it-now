@@ -1,10 +1,11 @@
-# Project map — Need-It-Now (local marketplace prototype)
+# Project map — Need-It-Now (local marketplace)
 
-A plain HTML/CSS/JS static site served by a local preview that hot-reloads on
-save. It's a front-end-only prototype of a local buy/sell marketplace — all data
-(users, listings, responses, session) lives in the browser via `localStorage`.
-There is NO backend; "accounts" are not secure and are not shared between
-browsers. A real version would need a server + database.
+A static HTML/CSS/JS front end backed by **Supabase** (hosted Postgres + Auth +
+auto REST API). The front end is served by a local preview that hot-reloads on
+save, and is also hostable as a plain static site (GitHub Pages). All shared data
+(accounts, listings, responses) lives in Supabase — different browsers/users see
+the same data. The browser talks to Supabase directly over HTTPS using the
+**publishable key**; Row-Level Security (RLS) is what protects the data.
 
 ## Where things live
 - **Landing page**: `index.html` in the project root.
@@ -12,18 +13,33 @@ browsers. A real version would need a server + database.
   `feed.html`. Each is standalone HTML.
 - **Styles** are in `assets/css/`:
   - `tokens.css` — design tokens in `:root` (blue primary, green money accent,
-    neutrals, type + spacing scale, radius, shadows). Re-theme here; never
-    hard-code colors/sizes in pages.
+    neutrals, type + spacing scale, radius, shadows). Re-theme here.
   - `main.css` — layout & components (nav, buttons, forms, cards, feed, modal).
-- **Scripts** are in `assets/js/` (loaded in this order on each page):
-  - `store.js` — `window.NIN`: localStorage CRUD for users/listings/responses/
-    session, the sample ZIP→lat/lng table, and `distanceMiles()` (haversine).
-  - `seed.js` — sample users + listings; seeds localStorage only if empty.
-  - `auth.js` — `window.NINAuth`: renders the nav user state on every page,
-    register/login form handlers, `requireAuth()` guard, `toast()`.
+- **Scripts** are in `assets/js/` and load as ES modules (`<script type="module">`):
+  - `config.js` — Supabase URL + publishable key, the demo ZIP→lat/lng table,
+    and `zipCoord()`.
+  - `api.js` — creates the Supabase client (imported from esm.sh) and exports the
+    data API: `signUp/signIn/signOut`, `getUser/getProfile`, `nearbyListings`
+    (calls the `nearby_listings` RPC), `createListing`, `addResponse`.
+  - `auth.js` — renders nav user state on every page, register/login/logout
+    handlers, `requireAuth()` guard, `toast()`, `go()/base()` helpers.
   - `feed.js` — feed page: location + radius filtering, type chips, search,
-    respond modal.
+    respond modal. Distance + response counts come from the RPC rows.
   - `post.js` — create-listing form on `post.html`.
+- **Database**: `supabase/schema.sql` (tables, RLS policies, triggers,
+  `nearby_listings` geo function) and `supabase/seed.sql` (demo listings).
+
+## Backend / Supabase
+- Tables: `profiles` (1 per auth user), `listings`, `responses`.
+- Auth: Supabase email+password. A trigger (`handle_new_user`) auto-creates the
+  `profiles` row from sign-up metadata (`name`, `zip`). Email confirmation is
+  expected to be OFF for the prototype (instant sign-in).
+- Location/radius: each listing stores `lat/lng` (resolved from ZIP client-side at
+  post time). The `nearby_listings(lat,lng,radius_mi,type,q)` SQL function returns
+  listings within radius with a computed `distance_mi`, nearest first.
+- `listings.response_count` is kept in sync by the `bump_response_count` trigger.
+- To change the schema, edit `supabase/schema.sql` and re-run it in the Supabase
+  SQL Editor (it is idempotent). To reseed, run `supabase/seed.sql`.
 
 ## Shared nav (keep in sync!)
 Every page has the same `<nav class="nav">…</nav>`. There is no include system —
@@ -37,13 +53,13 @@ when you add or rename a page you MUST update the nav links in EVERY page.
 
 ## How to make changes
 - **Add a page** in `pages/`: copy an existing page, fix its `<title>`, set its
-  own nav link `active`, add the link to the nav on every other page, and keep
-  the `../assets/...` script/style paths.
-- **Edit a page / behavior**: change just that file or the relevant JS module.
-  Keep edits surgical.
+  own nav link `active`, add the link to the nav on every other page, keep the
+  `../assets/...` paths, and load page JS as `<script type="module">`.
+- **Edit behavior**: change the relevant JS module. New data access goes through
+  `api.js` (don't sprinkle `supabase` calls across pages).
 - **Restyle**: edit `assets/css/tokens.css` first (the `:root` tokens).
-- **Sample data / ZIPs**: edit `seed.js` (listings/users) and the `ZIPS` table in
-  `store.js`. To reset the demo, run `NIN.reset()` in the browser console.
 
 ## Don't touch
 - `.phosphor-site.json` (project manifest, managed by the app).
+- `config.js` keys are the *publishable* key only — never put the service_role /
+  secret key in front-end code.

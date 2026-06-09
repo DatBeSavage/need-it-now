@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Log in — Need-It-Now</title>
+  <title>Messages — Need-It-Now</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -24,27 +24,15 @@
     </div>
   </nav>
 
-  <main class="auth-wrap">
-    <form class="card auth-card reveal" data-login novalidate>
-      <h1>Welcome back</h1>
-      <p class="sub">Log in to post listings and respond to neighbors.</p>
-
-      <div class="field">
-        <label for="l-email">Email</label>
-        <input class="input" id="l-email" name="email" type="email" autocomplete="email" placeholder="you@email.com" />
-      </div>
-      <div class="field">
-        <label for="l-pass">Password</label>
-        <input class="input" id="l-pass" name="password" type="password" autocomplete="current-password" placeholder="Your password" />
-      </div>
-
-      <p class="form-error" role="alert"></p>
-      <button class="btn btn--primary btn--block btn--lg" type="submit">Log in</button>
-
-      <p class="auth-foot">New here? <a href="register.html">Create an account</a></p>
-    </form>
+  <main class="wrap">
+    <div class="feed-head">
+      <h1>Messages</h1>
+      <p>Your conversations about local listings.</p>
+    </div>
+    <div id="threads" class="threads" style="margin-bottom:var(--sp-7)"></div>
   </main>
 
   <script type="module" src="../assets/js/auth.js"></script>
+  <script type="module" src="../assets/js/messages.js"></script>
 </body>
 </html>
