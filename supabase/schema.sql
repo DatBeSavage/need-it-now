@@ -13,6 +13,8 @@ create table if not exists public.profiles (
 
 alter table public.profiles add column if not exists avatar_path text;
 alter table public.profiles add column if not exists bio text not null default '';
+alter table public.profiles add column if not exists rating_avg numeric(3,2) not null default 0;
+alter table public.profiles add column if not exists rating_count int not null default 0;
 
 create table if not exists public.listings (
   id             uuid primary key default gen_random_uuid(),
@@ -87,9 +89,9 @@ create trigger on_auth_user_created
 -- ============================================================
 -- Chat: conversations + messages  (Phase 1)
 -- ============================================================
-drop trigger if exists trg_bump_response_count on public.responses;
+-- Remove the old one-way responses mechanism (idempotent: cascade drops its trigger).
+drop table if exists public.responses cascade;
 drop function if exists public.bump_response_count();
-drop table if exists public.responses;
 
 create table if not exists public.conversations (
   id              uuid primary key default gen_random_uuid(),
@@ -214,6 +216,54 @@ begin
 end $$;
 
 -- ============================================================
+-- Reputation: ratings  (Phase 3)
+-- ============================================================
+create table if not exists public.ratings (
+  id              uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations (id) on delete cascade,
+  rater_id        uuid not null references public.profiles (id) on delete cascade,
+  ratee_id        uuid not null references public.profiles (id) on delete cascade,
+  stars           int  not null check (stars between 1 and 5),
+  comment         text not null default '',
+  created_at      timestamptz not null default now(),
+  unique (conversation_id, rater_id)
+);
+create index if not exists ratings_ratee_idx on public.ratings (ratee_id, created_at desc);
+
+alter table public.ratings enable row level security;
+
+drop policy if exists "ratings_select_all"   on public.ratings;
+drop policy if exists "ratings_insert_party" on public.ratings;
+create policy "ratings_select_all" on public.ratings for select using (true);
+create policy "ratings_insert_party" on public.ratings for insert with check (
+  rater_id = auth.uid()
+  and exists (
+    select 1 from public.conversations c
+    where c.id = conversation_id
+      and c.dealt_at is not null
+      and (c.buyer_id = auth.uid() or c.owner_id = auth.uid())
+      and ratee_id = case when c.buyer_id = auth.uid() then c.owner_id else c.buyer_id end
+  )
+);
+
+-- Keep profiles.rating_avg / rating_count in sync.
+create or replace function public.recompute_rating()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare target uuid;
+begin
+  target := coalesce(new.ratee_id, old.ratee_id);
+  update public.profiles p set
+    rating_count = (select count(*) from public.ratings r where r.ratee_id = target),
+    rating_avg   = coalesce((select round(avg(r.stars)::numeric, 2) from public.ratings r where r.ratee_id = target), 0)
+  where p.id = target;
+  return null;
+end; $$;
+drop trigger if exists trg_recompute_rating on public.ratings;
+create trigger trg_recompute_rating
+  after insert or update or delete on public.ratings
+  for each row execute function public.recompute_rating();
+
+-- ============================================================
 -- Location/radius API: nearby_listings()
 -- Returns listings within radius_mi of (origin_lat, origin_lng),
 -- filtered by type + search, with a computed distance, nearest first.
@@ -232,7 +282,7 @@ returns table (
   id uuid, user_id uuid, owner_name text, type text, title text, description text,
   price integer, category text, emoji text, zip text, lat double precision,
   lng double precision, response_count integer, created_at timestamptz,
-  owner_avatar text, distance_mi double precision
+  owner_avatar text, owner_rating numeric, owner_rating_count int, distance_mi double precision
 )
 language sql stable as $$
   select *
@@ -242,6 +292,8 @@ language sql stable as $$
       l.price, l.category, l.emoji, l.zip, l.lat, l.lng,
       l.response_count, l.created_at,
       p.avatar_path as owner_avatar,
+      p.rating_avg  as owner_rating,
+      p.rating_count as owner_rating_count,
       case
         when l.lat is null or l.lng is null
           or origin_lat is null or origin_lng is null then null

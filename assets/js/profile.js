@@ -1,5 +1,6 @@
 // Need-It-Now — profile page (own = editable/settings; other = read-only).
-import { getProfile, getProfileById, updateProfile, uploadAvatar, listingsByUser } from "./api.js";
+import { getProfile, getProfileById, updateProfile, uploadAvatar, listingsByUser, ratingsForUser } from "./api.js";
+import { starsHTML } from "./stars.js";
 import { resolveZip } from "./config.js";
 import { wireZipInput } from "./zips.js";
 import { avatarHTML } from "./avatar.js";
@@ -40,16 +41,34 @@ async function renderPublic(root, p) {
       '<div><h1 class="profile-name">' + esc(p.name) + "</h1>" +
         '<p class="muted">' + esc(loc) + (loc ? " · " : "") + "Member since " + monthYear(p.created_at) + "</p>" +
         (p.bio ? '<p class="profile-bio">' + esc(p.bio) + "</p>" : "") +
-        '<div data-rating-slot></div>' +
+        '<div class="profile-rating">' + starsHTML(p.rating_avg, p.rating_count, "md") + "</div>" +
       "</div>" +
     "</div>" +
-    '<h2 class="profile-sub">Listings</h2><div class="minis" data-listings></div>';
+    '<h2 class="profile-sub">Listings</h2><div class="minis" data-listings></div>' +
+    '<h2 class="profile-sub">Reviews</h2><div class="reviews" data-reviews></div>';
   renderListings(root.querySelector("[data-listings]"), p.id, false);
+  renderReviews(root.querySelector("[data-reviews]"), p.id);
+}
+
+async function renderReviews(box, userId) {
+  var rows = [];
+  try { rows = await ratingsForUser(userId); } catch (e) { /* leave empty */ }
+  if (!rows.length) { box.innerHTML = '<p class="muted">No reviews yet.</p>'; return; }
+  box.innerHTML = rows.map(function (r) {
+    var who = (r.rater && r.rater.name) || "Neighbor";
+    return '<div class="review">' +
+      avatarHTML({ name: who, avatar_path: r.rater && r.rater.avatar_path }, "sm") +
+      '<div class="review__body"><div class="review__top"><strong>' + esc(who) + "</strong>" +
+        '<span class="review__stars">' + "★".repeat(r.stars) + "</span></div>" +
+        (r.comment ? '<p class="review__text">' + esc(r.comment) + "</p>" : "") +
+      "</div></div>";
+  }).join("");
 }
 
 function renderOwn(root, me) {
   root.innerHTML =
-    '<h1 class="profile-name" style="margin-bottom:var(--sp-4)">Your profile</h1>' +
+    '<h1 class="profile-name" style="margin-bottom:var(--sp-2)">Your profile</h1>' +
+    '<div class="profile-rating" style="margin-bottom:var(--sp-4)">' + starsHTML(me.rating_avg, me.rating_count, "md") + "</div>" +
     '<form class="card" data-form style="padding:var(--sp-6)">' +
       '<div class="profile-edit-head">' +
         '<span data-av>' + avatarHTML(me, "lg") + "</span>" +

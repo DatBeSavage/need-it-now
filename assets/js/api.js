@@ -46,6 +46,8 @@ export async function getProfile() {
     avatar_path: (data && data.avatar_path) || null,
     avatarUrl: (data && data.avatar_path)
       ? SUPABASE_URL + "/storage/v1/object/public/avatars/" + data.avatar_path : null,
+    rating_avg: (data && Number(data.rating_avg)) || 0,
+    rating_count: (data && data.rating_count) || 0,
   };
 }
 
@@ -106,7 +108,7 @@ export async function updateProfile(patch) {
 
 export async function getProfileById(userId) {
   const { data, error } = await supabase.from("profiles")
-    .select("id,name,zip,bio,avatar_path,created_at").eq("id", userId).maybeSingle();
+    .select("id,name,zip,bio,avatar_path,created_at,rating_avg,rating_count").eq("id", userId).maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -215,4 +217,40 @@ export async function myConversations() {
   return (data || []).map(function (c) {
     return Object.assign({}, c, { iAmOwner: c.owner_id === profile.id, me: profile });
   });
+}
+
+/* ---------------- Reputation ---------------- */
+export async function markDealt(conversationId) {
+  const { data, error } = await supabase.from("conversations")
+    .update({ dealt_at: new Date().toISOString() })
+    .eq("id", conversationId).select("dealt_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getMyRating(conversationId) {
+  const profile = await getProfile();
+  if (!profile) return null;
+  const { data } = await supabase.from("ratings")
+    .select("stars,comment").eq("conversation_id", conversationId)
+    .eq("rater_id", profile.id).maybeSingle();
+  return data || null;
+}
+
+export async function createRating({ conversationId, rateeId, stars, comment }) {
+  const profile = await getProfile();
+  if (!profile) throw new Error("Please log in.");
+  const { error } = await supabase.from("ratings").insert({
+    conversation_id: conversationId, rater_id: profile.id, ratee_id: rateeId,
+    stars: stars, comment: (comment || "").trim(),
+  });
+  if (error) throw error;
+}
+
+export async function ratingsForUser(userId) {
+  const { data, error } = await supabase.from("ratings")
+    .select("stars,comment,created_at,rater:profiles!ratings_rater_id_fkey(name,avatar_path)")
+    .eq("ratee_id", userId).order("created_at", { ascending: false }).limit(50);
+  if (error) throw error;
+  return data || [];
 }

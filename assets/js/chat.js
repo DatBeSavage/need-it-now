@@ -1,5 +1,6 @@
 // Need-It-Now — reusable real-time chat panel.
-import { getOrCreateConversation, getMessages, sendMessage, subscribeMessages, getProfile } from "./api.js";
+import { getOrCreateConversation, getMessages, sendMessage, subscribeMessages, getProfile,
+         markDealt, getMyRating, createRating } from "./api.js";
 import { toast, base } from "./auth.js";
 import { avatarHTML } from "./avatar.js";
 
@@ -26,6 +27,7 @@ function modal() {
         '<span class="chat__sub muted" data-sub></span></div>' +
         '<button class="chat__close" data-close aria-label="Close">✕</button></header>' +
       '<div class="chat__log" data-log></div>' +
+      '<div class="deal" data-deal></div>' +
       '<form class="chat__form" data-form>' +
         '<input class="chat__input" data-input autocomplete="off" placeholder="Write a message…" maxlength="2000" />' +
         '<button class="btn btn--primary" type="submit">Send</button></form>' +
@@ -62,6 +64,60 @@ function listen(log, convId) {
   unsub = subscribeMessages(convId, function (msg) { append(log, msg); });
 }
 
+async function renderDeal(m, conv) {
+  var bar = m.querySelector("[data-deal]");
+  if (!conv || !conv.id) { bar.innerHTML = ""; return; }
+  var otherId = conv.buyer_id === meId ? conv.owner_id : conv.buyer_id;
+  if (!conv.dealt_at) {
+    bar.innerHTML = '<span class="muted">Made a deal?</span>' +
+      '<button class="btn btn--ghost btn--sm" data-mark>Mark as dealt</button>';
+    bar.querySelector("[data-mark]").onclick = async function () {
+      try { var d = await markDealt(conv.id); conv.dealt_at = d.dealt_at; renderDeal(m, conv); }
+      catch (e) { toast("Couldn't mark as dealt."); }
+    };
+    return;
+  }
+  var mine = await getMyRating(conv.id);
+  if (mine) {
+    bar.innerHTML = '<span class="muted">You rated</span><span class="deal__rated">' +
+      "★".repeat(mine.stars) + "</span>";
+    return;
+  }
+  bar.innerHTML = '<span class="muted">Deal done —</span>' +
+    '<button class="btn btn--ghost btn--sm" data-rate>Leave a rating</button>';
+  bar.querySelector("[data-rate]").onclick = function () { showRateForm(m, conv, otherId); };
+}
+
+function showRateForm(m, conv, otherId) {
+  var bar = m.querySelector("[data-deal]");
+  var picked = 0;
+  bar.innerHTML = '<div class="rate">' +
+    '<div class="rate__stars" data-stars>' +
+      [1, 2, 3, 4, 5].map(function (i) {
+        return '<button type="button" class="star" data-v="' + i + '">★</button>';
+      }).join("") + "</div>" +
+    '<input class="input rate__msg" data-msg placeholder="Add a comment (optional)" maxlength="200" />' +
+    '<button class="btn btn--primary btn--sm" data-submit>Submit</button></div>';
+  var starsEl = bar.querySelector("[data-stars]");
+  starsEl.querySelectorAll(".star").forEach(function (b) {
+    b.onclick = function () {
+      picked = +b.getAttribute("data-v");
+      starsEl.querySelectorAll(".star").forEach(function (x) {
+        x.classList.toggle("star--on", +x.getAttribute("data-v") <= picked);
+      });
+    };
+  });
+  bar.querySelector("[data-submit]").onclick = async function () {
+    if (!picked) { toast("Pick a star rating."); return; }
+    try {
+      await createRating({ conversationId: conv.id, rateeId: otherId, stars: picked,
+        comment: bar.querySelector("[data-msg]").value });
+      toast("Thanks for the rating!");
+      renderDeal(m, conv);
+    } catch (e) { toast((e && e.message) || "Couldn't submit rating."); }
+  };
+}
+
 // opts: { conv } for an existing thread, or { listing } for a lazy new thread.
 async function openPanel(opts, person, sub) {
   var profile = await getProfile();
@@ -80,7 +136,7 @@ async function openPanel(opts, person, sub) {
     var text = input.value.trim(); if (!text) return;
     input.value = "";
     try {
-      if (!conv) { conv = await getOrCreateConversation(opts.listing); listen(log, conv.id); }
+      if (!conv) { conv = await getOrCreateConversation(opts.listing); listen(log, conv.id); renderDeal(m, conv); }
       await sendMessage(conv.id, text);
     } catch (err) { toast((err && err.message) || "Couldn't send."); input.value = text; }
   };
@@ -92,6 +148,7 @@ async function openPanel(opts, person, sub) {
     } catch (err) { log.innerHTML = '<div class="chat__empty">Couldn\'t load messages.</div>'; }
     listen(log, conv.id);
   }
+  renderDeal(m, conv);
   input.focus();
 }
 
