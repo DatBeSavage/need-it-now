@@ -499,3 +499,34 @@ end; $$;
 drop trigger if exists trg_banned_words on public.listings;
 create trigger trg_banned_words before insert on public.listings
   for each row execute function public.guard_banned_words();
+
+-- ============================================================
+-- Categories  (Admin D2 — editable)
+-- ============================================================
+create table if not exists public.categories (
+  value      text primary key,
+  label      text not null,
+  emoji      text not null default '📦',
+  sort       int  not null default 0,
+  created_at timestamptz not null default now()
+);
+alter table public.categories enable row level security;
+drop policy if exists "categories_select_all"  on public.categories;
+drop policy if exists "categories_insert_admin" on public.categories;
+drop policy if exists "categories_update_admin" on public.categories;
+drop policy if exists "categories_delete_admin" on public.categories;
+create policy "categories_select_all"  on public.categories for select using (true);
+create policy "categories_insert_admin" on public.categories for insert with check (public.is_admin());
+create policy "categories_update_admin" on public.categories for update using (public.is_admin()) with check (public.is_admin());
+create policy "categories_delete_admin" on public.categories for delete using (public.is_admin());
+
+insert into public.categories (value, label, emoji, sort) values
+  ('car','Cars & vehicles','🚗',1),
+  ('bike','Bikes','🚲',2),
+  ('phone','Phones & electronics','📱',3),
+  ('furniture','Furniture','🛋️',4),
+  ('game','Games & consoles','🎮',5),
+  ('tool','Tools','🛠️',6),
+  ('garden','Garden & outdoor','🌱',7),
+  ('other','Other','📦',8)
+on conflict (value) do nothing;

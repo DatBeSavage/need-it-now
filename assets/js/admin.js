@@ -2,7 +2,8 @@
 import { amIAdmin, adminListReports, adminListUsers, adminListListings, adminGetConversation,
          setReportStatus, setListingHidden, adminDeleteListing,
          banUser, unbanUser, adminListBanned, getProfile,
-         getSettings, adminSetSetting } from "./api.js";
+         getSettings, adminSetSetting,
+         getCategories, adminSaveCategory, adminDeleteCategory } from "./api.js";
 import { go, toast } from "./auth.js";
 import { avatarHTML } from "./avatar.js";
 import { resolveZip } from "./config.js";
@@ -184,7 +185,60 @@ async function renderSettings(panel) {
   });
 }
 
-var RENDER = { reports: renderReports, users: renderUsers, listings: renderListings, settings: renderSettings };
+async function renderCategories(panel) {
+  panel.innerHTML = '<p class="muted">Loading categories…</p>';
+  var cats = [];
+  try { cats = await getCategories(); } catch (e) { /* */ }
+  var sortByValue = {};
+  cats.forEach(function (c) { sortByValue[c.value] = c.sort; });
+  var rows = cats.map(function (c) {
+    return '<div class="admin-row"><span class="admin-emoji">' + esc(c.emoji) + "</span>" +
+      '<div class="admin-row__main"><div class="admin-meta">' +
+        '<input class="input" data-cat-emoji="' + esc(c.value) + '" value="' + esc(c.emoji) + '" style="width:70px" />' +
+        '<input class="input" data-cat-label="' + esc(c.value) + '" value="' + esc(c.label) + '" />' +
+        '<span class="muted">' + esc(c.value) + "</span>" +
+        '<button class="btn btn--ghost btn--sm" data-cat-save="' + esc(c.value) + '">Save</button>' +
+        '<button class="btn btn--ghost btn--sm" data-cat-del="' + esc(c.value) + '">Delete</button>' +
+      "</div></div></div>";
+  }).join("");
+  var addRow = '<div class="admin-row"><span class="admin-emoji">➕</span>' +
+    '<div class="admin-row__main"><div class="admin-meta">' +
+      '<input class="input" id="newcat-emoji" placeholder="📦" style="width:70px" />' +
+      '<input class="input" id="newcat-label" placeholder="Label" />' +
+      '<input class="input" id="newcat-value" placeholder="slug" style="width:120px" />' +
+      '<button class="btn btn--primary btn--sm" id="newcat-add">Add</button>' +
+    "</div></div></div>";
+  panel.innerHTML = rows + addRow;
+
+  panel.querySelectorAll("[data-cat-save]").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      var v = btn.getAttribute("data-cat-save");
+      var label = panel.querySelector('[data-cat-label="' + v + '"]').value.trim();
+      var emoji = panel.querySelector('[data-cat-emoji="' + v + '"]').value.trim() || "📦";
+      if (!label) { toast("Label required."); return; }
+      try { await adminSaveCategory({ value: v, label: label, emoji: emoji, sort: sortByValue[v] || 0 }); toast("Saved."); }
+      catch (e) { toast("Couldn't save category."); }
+    });
+  });
+  panel.querySelectorAll("[data-cat-del]").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      if (!window.confirm("Delete this category?")) return;
+      try { await adminDeleteCategory(btn.getAttribute("data-cat-del")); renderCategories(panel); }
+      catch (e) { toast("Couldn't delete category."); }
+    });
+  });
+  var add = panel.querySelector("#newcat-add");
+  if (add) add.addEventListener("click", async function () {
+    var v = panel.querySelector("#newcat-value").value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+    var label = panel.querySelector("#newcat-label").value.trim();
+    var emoji = panel.querySelector("#newcat-emoji").value.trim() || "📦";
+    if (!v || !label) { toast("Slug and label are required."); return; }
+    try { await adminSaveCategory({ value: v, label: label, emoji: emoji, sort: 99 }); renderCategories(panel); }
+    catch (e) { toast("Couldn't add category."); }
+  });
+}
+
+var RENDER = { reports: renderReports, users: renderUsers, listings: renderListings, settings: renderSettings, categories: renderCategories };
 
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(function (t) {

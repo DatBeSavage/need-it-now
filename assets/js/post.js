@@ -1,11 +1,12 @@
 // Need-It-Now — create/edit listing page (Supabase).
-import { createListing, getListing, updateListing } from "./api.js";
+import { createListing, getListing, updateListing, getCategories } from "./api.js";
 import { resolveZip } from "./config.js";
 import { requireAuth, go } from "./auth.js";
 import { wireZipInput } from "./zips.js";
 
 var EMOJI = { car: "🚗", bike: "🚲", phone: "📱", furniture: "🛋️", game: "🎮",
               tool: "🛠️", garden: "🌱", other: "📦" };
+var emojiByCat = {};
 
 document.addEventListener("DOMContentLoaded", async function () {
   var form = document.querySelector("[data-post]");
@@ -19,6 +20,17 @@ document.addEventListener("DOMContentLoaded", async function () {
   form.zip.value = profile.zip || "";
   var checkZip = wireZipInput(form.zip);
   checkZip();
+
+  try {
+    var cats = await getCategories();
+    if (cats.length) {
+      form.category.innerHTML = cats.map(function (c) {
+        return '<option value="' + c.value + '">' +
+          String(c.label).replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</option>";
+      }).join("");
+      cats.forEach(function (c) { emojiByCat[c.value] = c.emoji; });
+    }
+  } catch (e) { /* keep the hard-coded options as a fallback */ }
 
   var priceLabel = document.getElementById("price-label");
   function syncType() {
@@ -82,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     var fields = {
       type: type, title: title, description: desc, price: price,
-      category: cat, emoji: EMOJI[cat] || "📦",
+      category: cat, emoji: emojiByCat[cat] || EMOJI[cat] || "📦",
       zip: zip, lat: coord.lat, lng: coord.lng,
     };
     try {

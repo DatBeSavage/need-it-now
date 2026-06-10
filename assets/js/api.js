@@ -360,3 +360,22 @@ export async function adminSetSetting(key, value) {
     .upsert({ key: key, value: value, updated_at: new Date().toISOString() });
   if (error) throw error;
 }
+
+/* ---------------- Categories ---------------- */
+export async function getCategories() {
+  const { data, error } = await supabase.from("categories")
+    .select("value,label,emoji,sort").order("sort", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function adminSaveCategory({ value, label, emoji, sort }) {
+  const { error } = await supabase.from("categories")
+    .upsert({ value: value, label: label, emoji: emoji || "📦", sort: sort || 0 });
+  if (error) throw error;
+}
+
+export async function adminDeleteCategory(value) {
+  const { error } = await supabase.from("categories").delete().eq("value", value);
+  if (error) throw error;
+}
