@@ -36,21 +36,29 @@
       ✅ Your listing is live — neighbors in range can see it now.
     </div>
 
-    <div class="controls">
-      <div class="controls__row">
-        <div class="field control-loc">
-          <label for="ctl-zip">📍 Location</label>
-          <input class="input" id="ctl-zip" list="zip-list" placeholder="ZIP code" />
+    <div class="controls" id="controls">
+      <div class="filterbar">
+        <div class="searchbox">
+          <span class="searchbox__icon" aria-hidden="true">🔍</span>
+          <input class="searchbox__input" id="ctl-search" type="search"
+                 placeholder="Search car, bike, sofa…" aria-label="Search listings" />
+        </div>
+        <div class="locfield">
+          <span class="locfield__pin" aria-hidden="true">📍</span>
+          <input class="locfield__input" id="ctl-zip" list="zip-list" inputmode="numeric"
+                 placeholder="ZIP" aria-label="Your location ZIP code" />
           <datalist id="zip-list"></datalist>
         </div>
-        <div class="field control-radius">
-          <label for="ctl-radius">Within <span class="radius-val" id="radius-val">25</span> miles</label>
-          <input type="range" id="ctl-radius" min="1" max="50" value="25" />
-        </div>
-        <div class="field control-search">
-          <label for="ctl-search">Search</label>
-          <input class="input" id="ctl-search" type="search" placeholder="Search car, bike, sofa…" />
-        </div>
+        <label class="distfield">
+          <span class="distfield__label">Within</span>
+          <select class="distfield__select" id="ctl-radius" aria-label="Search radius">
+            <option value="2">2 mi</option>
+            <option value="5">5 mi</option>
+            <option value="10">10 mi</option>
+            <option value="25" selected>25 mi</option>
+            <option value="50">50 mi</option>
+          </select>
+        </label>
       </div>
       <div class="chips" role="tablist" aria-label="Filter by type">
         <button class="chip active" data-filter="all">Everything</button>

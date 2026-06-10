@@ -34,6 +34,8 @@ create table if not exists public.listings (
 );
 
 alter table public.listings add column if not exists hidden boolean not null default false;
+-- Up to a few photo paths (in the public 'listings' storage bucket), first is the cover.
+alter table public.listings add column if not exists photos text[] not null default '{}';
 
 create index if not exists listings_type_idx       on public.listings (type);
 create index if not exists listings_created_idx     on public.listings (created_at desc);
@@ -50,7 +52,15 @@ drop policy if exists "profiles_insert_own"    on public.profiles;
 drop policy if exists "profiles_update_own"    on public.profiles;
 create policy "profiles_select_all" on public.profiles for select using (true);
 create policy "profiles_insert_own" on public.profiles for insert with check (auth.uid() = id);
-create policy "profiles_update_own" on public.profiles for update using (auth.uid() = id);
+create policy "profiles_update_own" on public.profiles for update
+  using (auth.uid() = id) with check (auth.uid() = id);
+
+-- Column-level lock: a user may only edit these fields on their own profile.
+-- RLS is row-level only, so without this a user could PATCH rating_avg /
+-- rating_count (forging reputation) or inject markup into avatar_path.
+-- rating_avg / rating_count are written solely by the recompute_rating trigger.
+revoke update on public.profiles from anon, authenticated;
+grant  update (name, zip, bio, avatar_path) on public.profiles to authenticated;
 
 -- listings: world-readable; insert/update/delete only your own
 drop policy if exists "listings_select_all"  on public.listings;
@@ -59,8 +69,11 @@ drop policy if exists "listings_update_own"  on public.listings;
 drop policy if exists "listings_delete_own"  on public.listings;
 create policy "listings_select_all" on public.listings for select using (true);
 create policy "listings_insert_own" on public.listings for insert with check (auth.uid() = user_id);
+-- Owner-only update. WITH CHECK stops a user reassigning user_id / owner_name to
+-- another account. Admin moderation (hide/unhide) goes through admin_set_listing_hidden()
+-- so an owner can't simply un-hide a listing a moderator hid.
 create policy "listings_update_own" on public.listings for update
-  using (auth.uid() = user_id or public.is_admin());
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "listings_delete_own" on public.listings for delete
   using (auth.uid() = user_id or public.is_admin());
 
@@ -165,6 +178,12 @@ create index if not exists conversations_buyer_idx   on public.conversations (bu
 create index if not exists conversations_listing_idx on public.conversations (listing_id);
 create index if not exists conversations_recent_idx  on public.conversations (last_message_at desc);
 
+-- Two-sided deal confirmation: each party confirms their own side. dealt_at is
+-- set (by the mark_dealt RPC) only once BOTH have confirmed, which in turn gates
+-- who may leave a rating. Prevents one party unilaterally "closing" a deal.
+alter table public.conversations add column if not exists dealt_buyer_at timestamptz;
+alter table public.conversations add column if not exists dealt_owner_at timestamptz;
+
 create table if not exists public.messages (
   id              uuid primary key default gen_random_uuid(),
   conversation_id uuid not null references public.conversations (id) on delete cascade,
@@ -190,9 +209,10 @@ create policy "conversations_insert_buyer" on public.conversations for insert
     and owner_id = (select l.user_id from public.listings l where l.id = listing_id)
     and not public.is_banned()
   );
-create policy "conversations_update_party" on public.conversations for update
-  using (auth.uid() = buyer_id or auth.uid() = owner_id)
-  with check (auth.uid() = buyer_id or auth.uid() = owner_id);
+-- No direct client UPDATE on conversations. The only field a party changes is the
+-- deal confirmation, and that goes through mark_dealt() (a SECURITY DEFINER RPC that
+-- only ever sets the *caller's* side). last_message_at / last_body are maintained by
+-- the touch_conversation trigger. With no UPDATE policy, RLS denies all client updates.
 
 drop policy if exists "messages_select_party" on public.messages;
 drop policy if exists "messages_insert_party" on public.messages;
@@ -375,7 +395,7 @@ create or replace function public.nearby_listings(
 returns table (
   id uuid, user_id uuid, owner_name text, type text, title text, description text,
   price integer, category text, emoji text, zip text, lat double precision,
-  lng double precision, response_count integer, created_at timestamptz,
+  lng double precision, response_count integer, created_at timestamptz, photos text[],
   owner_avatar text, owner_rating numeric, owner_rating_count int, distance_mi double precision
 )
 language sql stable as $$
@@ -384,7 +404,7 @@ language sql stable as $$
     select
       l.id, l.user_id, l.owner_name, l.type, l.title, l.description,
       l.price, l.category, l.emoji, l.zip, l.lat, l.lng,
-      l.response_count, l.created_at,
+      l.response_count, l.created_at, l.photos,
       p.avatar_path as owner_avatar,
       p.rating_avg  as owner_rating,
       p.rating_count as owner_rating_count,
@@ -530,3 +550,83 @@ insert into public.categories (value, label, emoji, sort) values
   ('garden','Garden & outdoor','🌱',7),
   ('other','Other','📦',8)
 on conflict (value) do nothing;
+
+-- ============================================================
+-- Hardening: column-level write lock on listings
+-- ============================================================
+-- A user may only edit the content fields of their own listing. Without this,
+-- the row-level policy alone would still let them rewrite owner_name / user_id /
+-- response_count / hidden directly via the REST API.
+-- response_count is maintained by bump_interest_count; hidden by admin_set_listing_hidden.
+revoke update on public.listings from anon, authenticated;
+grant  update (type, title, description, price, category, emoji, zip, lat, lng, photos)
+  on public.listings to authenticated;
+
+-- ============================================================
+-- Admin moderation: hide/unhide a listing (admin-only, bypasses the column lock)
+-- ============================================================
+create or replace function public.admin_set_listing_hidden(listing_id uuid, make_hidden boolean)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Not authorized'; end if;
+  update public.listings set hidden = make_hidden where id = listing_id;
+end; $$;
+revoke execute on function public.admin_set_listing_hidden(uuid, boolean) from public, anon;
+grant  execute on function public.admin_set_listing_hidden(uuid, boolean) to authenticated;
+
+-- ============================================================
+-- Two-sided deal confirmation RPC
+-- ============================================================
+-- Sets ONLY the calling party's confirmation, then promotes dealt_at once both
+-- sides are in. Returns the updated conversation row.
+create or replace function public.mark_dealt(conv_id uuid)
+returns public.conversations
+language plpgsql security definer set search_path = public as $$
+declare c public.conversations%rowtype;
+begin
+  select * into c from public.conversations where id = conv_id;
+  if not found then raise exception 'Conversation not found'; end if;
+  if auth.uid() <> c.buyer_id and auth.uid() <> c.owner_id then
+    raise exception 'Not authorized';
+  end if;
+
+  if auth.uid() = c.buyer_id then
+    update public.conversations set dealt_buyer_at = coalesce(dealt_buyer_at, now()) where id = conv_id;
+  else
+    update public.conversations set dealt_owner_at = coalesce(dealt_owner_at, now()) where id = conv_id;
+  end if;
+
+  update public.conversations
+     set dealt_at = case when dealt_buyer_at is not null and dealt_owner_at is not null
+                         then coalesce(dealt_at, now()) end
+   where id = conv_id
+   returning * into c;
+  return c;
+end; $$;
+revoke execute on function public.mark_dealt(uuid) from public, anon;
+grant  execute on function public.mark_dealt(uuid) to authenticated;
+
+-- ============================================================
+-- Listing photos storage bucket (public read; users write only their own folder)
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('listings', 'listings', true)
+on conflict (id) do nothing;
+
+drop policy if exists "listings_photos_read"   on storage.objects;
+drop policy if exists "listings_photos_insert"  on storage.objects;
+drop policy if exists "listings_photos_update"  on storage.objects;
+drop policy if exists "listings_photos_delete"  on storage.objects;
+
+create policy "listings_photos_read" on storage.objects
+  for select using (bucket_id = 'listings');
+create policy "listings_photos_insert" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'listings' and (storage.foldername(name))[1] = (auth.uid())::text);
+create policy "listings_photos_update" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'listings' and (storage.foldername(name))[1] = (auth.uid())::text)
+  with check (bucket_id = 'listings' and (storage.foldername(name))[1] = (auth.uid())::text);
+create policy "listings_photos_delete" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'listings' and (storage.foldername(name))[1] = (auth.uid())::text);

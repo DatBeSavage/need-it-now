@@ -69,13 +69,24 @@ function listen(log, convId) {
 async function renderDeal(m, conv) {
   var bar = m.querySelector("[data-deal]");
   if (!conv || !conv.id) { bar.innerHTML = ""; return; }
-  var otherId = conv.buyer_id === meId ? conv.owner_id : conv.buyer_id;
+  var iAmBuyer = conv.buyer_id === meId;
+  var otherId = iAmBuyer ? conv.owner_id : conv.buyer_id;
+  var myDone = iAmBuyer ? conv.dealt_buyer_at : conv.dealt_owner_at;
   if (!conv.dealt_at) {
+    if (myDone) {
+      bar.innerHTML = '<span class="muted">✓ You confirmed the deal — waiting for the other person.</span>';
+      return;
+    }
     bar.innerHTML = '<span class="muted">Made a deal?</span>' +
       '<button class="btn btn--ghost btn--sm" data-mark>Mark as dealt</button>';
     bar.querySelector("[data-mark]").onclick = async function () {
-      try { var d = await markDealt(conv.id); conv.dealt_at = d.dealt_at; renderDeal(m, conv); }
-      catch (e) { toast("Couldn't mark as dealt."); }
+      try {
+        var d = await markDealt(conv.id);
+        conv.dealt_at = d.dealt_at;
+        conv.dealt_buyer_at = d.dealt_buyer_at;
+        conv.dealt_owner_at = d.dealt_owner_at;
+        renderDeal(m, conv);
+      } catch (e) { toast((e && e.message) || "Couldn't mark as dealt."); }
     };
     return;
   }

@@ -22,7 +22,7 @@ export function avatarHTML(person, size) {
   size = size || "md";
   var url = person && (person.avatarUrl || avatarUrl(person.avatar_path));
   if (url) {
-    return '<img class="avatar avatar--' + size + '" src="' + url +
+    return '<img class="avatar avatar--' + size + '" src="' + esc(url) +
       '" alt="' + esc(person && person.name) + '" loading="lazy" />';
   }
   return '<span class="avatar avatar--initials avatar--' + size + '">' +

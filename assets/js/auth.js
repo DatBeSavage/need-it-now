@@ -26,32 +26,61 @@ function friendlyError(e) {
   return m;
 }
 
+/* The nav user-area is cached so it paints instantly on every page load (no
+   empty→filled flicker between navigations); the async check then reconciles it. */
+var NAV_CACHE = "nin_nav_v1";
+export function readNavCache() {
+  try { return JSON.parse(localStorage.getItem(NAV_CACHE) || "null"); } catch (e) { return null; }
+}
+export function writeNavCache(state) {
+  try { localStorage.setItem(NAV_CACHE, JSON.stringify(state)); } catch (e) { /* full / blocked */ }
+}
+
+function navHTML(state) {
+  if (state && state.loggedIn) {
+    var adminLink = state.isAdmin
+      ? '<a href="' + base() + 'pages/admin.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--blue-600);text-decoration:none;padding:.5rem .8rem">Admin</a>'
+      : "";
+    var person = { name: state.name || "Neighbor", avatar_path: state.avatar_path || null };
+    return adminLink +
+      '<a href="' + base() + 'pages/messages.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--ink-2);text-decoration:none;padding:.5rem .8rem">Messages</a>' +
+      '<a class="btn btn--money btn--sm" href="' + base() + 'pages/post.html">+ Post</a>' +
+      '<a href="' + base() + 'pages/profile.html" class="nav__avatar-link" title="' + (state.name || "") + '">' +
+        avatarHTML(person, "sm") + "</a>" +
+      '<a href="#" data-logout style="font-weight:700;font-size:var(--fs-sm);color:var(--muted);text-decoration:none">Log out</a>';
+  }
+  return '<a href="' + base() + 'pages/login.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--ink-2);text-decoration:none;padding:.5rem .8rem">Log in</a>' +
+    '<a class="btn btn--primary" href="' + base() + 'pages/register.html">Sign up</a>';
+}
+
+function paintNav(slot, state) {
+  slot.innerHTML = navHTML(state);
+  var lo = slot.querySelector("[data-logout]");
+  if (lo) lo.addEventListener("click", async function (e) {
+    e.preventDefault(); writeNavCache({ loggedIn: false }); await signOut(); go("pages/login.html");
+  });
+}
+
 /* Render the user side of the nav on every page. */
 async function renderNavUser() {
   var slot = document.querySelector("[data-nav-user]");
   if (!slot) return;
+
+  var cached = readNavCache();
+  if (cached) paintNav(slot, cached); // instant — no flicker
+
   var profile = null;
   try { profile = await getProfile(); } catch (e) { /* offline / not logged in */ }
+  var fresh;
   if (profile) {
-    var adminLink = "";
-    try { if (await amIAdmin()) {
-      adminLink = '<a href="' + base() + 'pages/admin.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--blue-600);text-decoration:none;padding:.5rem .8rem">Admin</a>';
-    } } catch (e) { /* not admin */ }
-    slot.innerHTML =
-      adminLink +
-      '<a href="' + base() + 'pages/messages.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--ink-2);text-decoration:none;padding:.5rem .8rem">Messages</a>' +
-      '<a class="btn btn--money btn--sm" href="' + base() + 'pages/post.html">+ Post</a>' +
-      '<a href="' + base() + 'pages/profile.html" class="nav__avatar-link" title="' + profile.name + '">' +
-        avatarHTML(profile, "sm") + "</a>" +
-      '<a href="#" data-logout style="font-weight:700;font-size:var(--fs-sm);color:var(--muted);text-decoration:none">Log out</a>';
-    slot.querySelector("[data-logout]").addEventListener("click", async function (e) {
-      e.preventDefault(); await signOut(); go("pages/login.html");
-    });
+    var isAdmin = false;
+    try { isAdmin = await amIAdmin(); } catch (e) { /* not admin */ }
+    fresh = { loggedIn: true, name: profile.name, avatar_path: profile.avatar_path || null, isAdmin: isAdmin };
   } else {
-    slot.innerHTML =
-      '<a href="' + base() + 'pages/login.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--ink-2);text-decoration:none;padding:.5rem .8rem">Log in</a>' +
-      '<a class="btn btn--primary" href="' + base() + 'pages/register.html">Sign up</a>';
+    fresh = { loggedIn: false };
   }
+  if (JSON.stringify(cached) !== JSON.stringify(fresh)) paintNav(slot, fresh);
+  writeNavCache(fresh);
 }
 
 /* Guard: redirect to login if not signed in. Returns the profile or null. */
@@ -87,6 +116,7 @@ function wireRegister() {
       var res = await signUp({ name: name, email: email, zip: zip, password: pass });
       if (res && res.session) {
         // Instant sign-in (email confirmation OFF) — we're logged in.
+        writeNavCache({ loggedIn: true, name: name });
         go("pages/feed.html");
       } else {
         // Email confirmation is ON: account made, but no session yet.
@@ -116,6 +146,7 @@ function wireLogin() {
     setBusy(btn, true, "Logging in…");
     try {
       await signIn({ email: email, password: pass });
+      writeNavCache({ loggedIn: true }); // name/avatar fill in on reconcile
       var next = new URLSearchParams(location.search).get("next");
       if (next && next.indexOf("/pages/") !== -1) {
         location.href = base() + "pages/" + next.split("/pages/")[1];

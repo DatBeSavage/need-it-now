@@ -82,6 +82,41 @@ export async function getListing(id) {
   return data;
 }
 
+// Public URL for a stored listing photo path (or null).
+export function listingPhotoUrl(path) {
+  return path ? SUPABASE_URL + "/storage/v1/object/public/listings/" + path : null;
+}
+
+// Resize keeping aspect ratio (longest edge = maxEdge), as a JPEG blob.
+function _resizeContain(file, maxEdge) {
+  return new Promise(function (resolve, reject) {
+    const img = new Image();
+    img.onload = function () {
+      const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      c.toBlob(function (b) { b ? resolve(b) : reject(new Error("Image processing failed.")); }, "image/jpeg", 0.82);
+    };
+    img.onerror = function () { reject(new Error("Couldn't read that image.")); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Upload one listing photo to the caller's folder; returns the stored path.
+export async function uploadListingPhoto(file) {
+  const profile = await getProfile();
+  if (!profile) throw new Error("Please log in.");
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error("Use a JPG, PNG, or WebP image.");
+  if (file.size > 10 * 1024 * 1024) throw new Error("Each image must be under 10 MB.");
+  const blob = await _resizeContain(file, 1280);
+  const path = profile.id + "/" + Date.now() + "-" + Math.round(performance.now()) + ".jpg";
+  const up = await supabase.storage.from("listings").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+  if (up.error) throw up.error;
+  return path;
+}
+
 export async function updateListing(id, patch) {
   const profile = await getProfile();
   if (!profile) throw new Error("You must be logged in.");
@@ -220,10 +255,10 @@ export async function myConversations() {
 }
 
 /* ---------------- Reputation ---------------- */
+// Confirm the deal from the caller's side only. Returns the updated conversation
+// row; dealt_at is non-null once BOTH parties have confirmed.
 export async function markDealt(conversationId) {
-  const { data, error } = await supabase.from("conversations")
-    .update({ dealt_at: new Date().toISOString() })
-    .eq("id", conversationId).select("dealt_at").single();
+  const { data, error } = await supabase.rpc("mark_dealt", { conv_id: conversationId });
   if (error) throw error;
   return data;
 }
@@ -321,7 +356,7 @@ export async function setReportStatus(reportId, status) {
 }
 
 export async function setListingHidden(listingId, hidden) {
-  const { error } = await supabase.from("listings").update({ hidden: hidden }).eq("id", listingId);
+  const { error } = await supabase.rpc("admin_set_listing_hidden", { listing_id: listingId, make_hidden: hidden });
   if (error) throw error;
 }
 

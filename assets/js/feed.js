@@ -1,5 +1,5 @@
 // Need-It-Now — feed page: location + radius filtering, search, respond (Supabase).
-import { nearbyListings, getProfile, deleteListing } from "./api.js";
+import { nearbyListings, getProfile, deleteListing, listingPhotoUrl } from "./api.js";
 import { resolveZip } from "./config.js";
 import { fillZipDatalist } from "./zips.js";
 import { toast, go } from "./auth.js";
@@ -49,7 +49,11 @@ function cardHTML(row) {
   var priceLabel = row.type === "sell" ? money(row.price) : "Budget " + money(row.price);
   return '' +
     '<article class="listing">' +
-      '<div class="listing__media">' + (row.emoji || "📦") + "</div>" +
+      '<div class="listing__media">' +
+        (row.photos && row.photos.length
+          ? '<img class="listing__photo" src="' + escapeHTML(listingPhotoUrl(row.photos[0])) + '" alt="" loading="lazy" />'
+          : (row.emoji || "📦")) +
+      "</div>" +
       '<div class="listing__body">' +
         '<div class="listing__top">' + badge +
           '<span class="price listing__price">' + priceLabel + "</span>" +
@@ -171,16 +175,14 @@ function openRespond(id) {
 function wireControls() {
   var loc = document.getElementById("ctl-zip");
   var rad = document.getElementById("ctl-radius");
-  var radVal = document.getElementById("radius-val");
   var search = document.getElementById("ctl-search");
 
   state.zip = (currentProfile && currentProfile.zip) || "78701";
   loc.value = state.zip;
-  rad.value = state.radius;
-  radVal.textContent = state.radius;
+  rad.value = String(state.radius);
 
   loc.addEventListener("input", function () { state.zip = loc.value.trim(); scheduleRender(); });
-  rad.addEventListener("input", function () { state.radius = +rad.value; radVal.textContent = rad.value; scheduleRender(); });
+  rad.addEventListener("change", function () { state.radius = +rad.value; scheduleRender(); });
   search.addEventListener("input", function () { state.q = search.value; scheduleRender(); });
 
   document.querySelectorAll(".chip").forEach(function (chip) {
@@ -191,6 +193,21 @@ function wireControls() {
       render();
     });
   });
+
+  // Tuck the filter bar out of the way while scrolling down; bring it back on the
+  // way up (or near the top). Keeps it handy without hogging the screen.
+  var controls = document.getElementById("controls");
+  var lastY = window.scrollY || 0, ticking = false;
+  window.addEventListener("scroll", function () {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () {
+      var y = window.scrollY || 0;
+      if (y > 200 && y > lastY + 4) controls.classList.add("controls--tuck");
+      else if (y < lastY - 4 || y < 200) controls.classList.remove("controls--tuck");
+      lastY = y; ticking = false;
+    });
+  }, { passive: true });
 }
 
 document.addEventListener("DOMContentLoaded", async function () {

@@ -1,5 +1,5 @@
 // Need-It-Now — profile page (own = editable/settings; other = read-only).
-import { getProfile, getProfileById, updateProfile, uploadAvatar, listingsByUser, ratingsForUser } from "./api.js";
+import { getProfile, getProfileById, updateProfile, uploadAvatar, listingsByUser, ratingsForUser, listingPhotoUrl } from "./api.js";
 import { starsHTML } from "./stars.js";
 import { resolveZip } from "./config.js";
 import { wireZipInput } from "./zips.js";
@@ -17,8 +17,10 @@ function monthYear(iso) {
   return new Date(iso).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 function miniCard(l, editable) {
-  return '<article class="mini">' +
-    '<span class="mini__emoji">' + (l.emoji || "📦") + "</span>" +
+  var media = (l.photos && l.photos.length)
+    ? '<img class="mini__photo" src="' + esc(listingPhotoUrl(l.photos[0])) + '" alt="" loading="lazy" />'
+    : '<span class="mini__emoji">' + (l.emoji || "📦") + "</span>";
+  return '<article class="mini">' + media +
     '<span class="mini__body"><strong>' + esc(l.title) + "</strong>" +
     '<span class="muted">' + (l.type === "sell" ? money(l.price) : "Budget " + money(l.price)) + "</span></span>" +
     (editable ? '<a class="btn btn--ghost btn--sm" href="post.html?id=' + l.id + '">Edit</a>' : "") +

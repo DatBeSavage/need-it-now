@@ -37,7 +37,17 @@ the same data. The browser talks to Supabase directly over HTTPS using the
 - Location/radius: each listing stores `lat/lng` (resolved from ZIP client-side at
   post time). The `nearby_listings(lat,lng,radius_mi,type,q)` SQL function returns
   listings within radius with a computed `distance_mi`, nearest first.
-- `listings.response_count` is kept in sync by the `bump_response_count` trigger.
+- `listings.response_count` is bumped once per new conversation (`bump_interest_count`).
+- **Write-protection model (don't undo this):** RLS is row-level only, so columns are
+  locked with Postgres `GRANT UPDATE (cols)`. Clients may update only content fields on
+  `profiles` (name/zip/bio/avatar_path) and `listings` (the listing fields + `photos`).
+  Protected columns are written only by privileged code: `rating_avg`/`rating_count` by
+  the `recompute_rating` trigger; `listings.hidden` by the `admin_set_listing_hidden()`
+  RPC (admin-only); deal confirmation by `mark_dealt()` (sets only the caller's side —
+  both parties must confirm before `dealt_at` is set, which gates ratings). Any URL built
+  from a stored field (avatar_path, photos) MUST be HTML-escaped before going into markup.
+- **Listing photos**: up to 4 per listing in `listings.photos text[]`, stored in the
+  public `listings` storage bucket under `<uid>/...`; first photo is the card cover.
 - To change the schema, edit `supabase/schema.sql` and re-run it in the Supabase
   SQL Editor (it is idempotent). To reseed, run `supabase/seed.sql`.
 

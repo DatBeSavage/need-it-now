@@ -93,6 +93,13 @@
         <textarea class="textarea" id="p-desc" name="desc" placeholder="Condition, pickup details, why you're selling or what exactly you're after…"></textarea>
       </div>
 
+      <div class="field">
+        <label>Photos <span class="muted" style="font-weight:500">(up to 4 — first one is the cover)</span></label>
+        <div class="photo-grid" data-photos></div>
+        <label class="btn btn--ghost btn--sm" data-add-photo>＋ Add photo
+          <input type="file" accept="image/*" multiple data-photo-input hidden /></label>
+      </div>
+
       <p class="form-error" role="alert"></p>
       <div style="display:flex;gap:var(--sp-3)">
         <a class="btn btn--ghost" href="feed.html">Cancel</a>
