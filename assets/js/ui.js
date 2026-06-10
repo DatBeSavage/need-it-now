@@ -21,7 +21,7 @@ export function toast(msg, opts) {
   var type = ICONS.hasOwnProperty(opts.type) ? opts.type : "info";
   var c = container();
   var t = document.createElement("div");
-  t.className = "toast toast--" + type;
+  t.className = "toast" + (type !== "info" ? " toast--" + type : "");
   if (ICONS[type]) {
     var ic = document.createElement("span");
     ic.className = "toast__icon"; ic.setAttribute("aria-hidden", "true"); ic.textContent = ICONS[type];
@@ -33,7 +33,11 @@ export function toast(msg, opts) {
   if (opts.actionLabel) {
     var a = document.createElement("button");
     a.className = "toast__action"; a.type = "button"; a.textContent = opts.actionLabel;
-    a.addEventListener("click", function () { dismiss(); if (opts.onAction) opts.onAction(); });
+    a.addEventListener("click", function () {
+      dismiss();
+      try { if (opts.onAction) opts.onAction(); }
+      catch (e) { console.error("toast onAction:", e); }
+    });
     t.appendChild(a);
   }
   var x = document.createElement("button");
