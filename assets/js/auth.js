@@ -3,19 +3,13 @@ import { signUp, signIn, signOut, getProfile, amIAdmin } from "./api.js";
 import { resolveZip } from "./config.js";
 import { wireZipInput } from "./zips.js";
 import { avatarHTML, initials } from "./avatar.js";
+export { toast } from "./ui.js";
 
 /* Resolve relative path depending on page depth (root vs /pages/). */
 export function base() {
   return location.pathname.indexOf("/pages/") !== -1 ? "../" : "";
 }
 export function go(path) { location.href = base() + path; }
-
-export function toast(msg) {
-  var t = document.querySelector(".toast");
-  if (!t) { t = document.createElement("div"); t.className = "toast"; document.body.appendChild(t); }
-  t.textContent = msg; t.classList.add("show");
-  clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove("show"); }, 2400);
-}
 
 function friendlyError(e) {
   var m = (e && e.message) || "Something went wrong. Try again.";

@@ -299,14 +299,34 @@ button { font-family: inherit; }
 .modal { width: 100%; max-width: 440px; padding: var(--sp-6); }
 .modal h3 { font-size: var(--fs-lg); margin-bottom: var(--sp-2); }
 
-/* Toast */
+/* Toasts — stacking container + variants */
+.toasts {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  z-index: 200; pointer-events: none; max-width: calc(100vw - 32px);
+}
 .toast {
-  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+  display: flex; align-items: center; gap: .6ch;
   background: var(--ink); color: #fff; padding: .8rem 1.2rem; border-radius: var(--r-pill);
   font-weight: 700; font-size: var(--fs-sm); box-shadow: var(--shadow-lg);
-  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 200;
+  opacity: 0; transform: translateY(20px); transition: opacity .2s, transform .2s;
+  pointer-events: auto; max-width: 100%;
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast--success .toast__icon { color: #4ade80; }
+.toast--error { background: #7f1d1d; }
+.toast--error .toast__icon { color: #fca5a5; }
+.toast__action {
+  border: 0; background: rgba(255,255,255,.16); color: #fff; font: inherit; font-weight: 800;
+  padding: .3rem .7rem; border-radius: var(--r-pill); cursor: pointer; margin-left: .4ch;
+}
+.toast__action:hover { background: rgba(255,255,255,.26); }
+.toast__x {
+  border: 0; background: none; color: rgba(255,255,255,.7); font: inherit;
+  cursor: pointer; padding: 0 0 0 .4ch; line-height: 1;
+}
+.toast__x:hover { color: #fff; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 
 /* Page intro reveal */
 .reveal { opacity: 0; transform: translateY(14px); animation: rise .6s ease forwards; }
@@ -519,7 +539,7 @@ button { font-family: inherit; }
   .nav__user { margin-left: auto; gap: var(--sp-2); }
 
   .controls { top: calc(var(--nav-h) + var(--sp-2)); padding: var(--sp-3); }
-  .toast { bottom: calc(var(--bottomnav-h) + 18px); }
+  .toasts { bottom: calc(var(--bottomnav-h) + 18px); }
   /* Keep auth screens centered in the space above the bottom tab bar */
   .auth-wrap { min-height: calc(100dvh - var(--nav-h) - var(--bottomnav-h)); }
 }
