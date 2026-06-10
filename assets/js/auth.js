@@ -1,5 +1,5 @@
 // Need-It-Now — auth + shared nav state (Supabase-backed).
-import { signUp, signIn, signOut, getProfile, amIAdmin } from "./api.js";
+import { signUp, signIn, signOut, getProfile, amIAdmin, myUnreadCount } from "./api.js";
 import { resolveZip } from "./config.js";
 import { wireZipInput } from "./zips.js";
 import { avatarHTML, initials } from "./avatar.js";
@@ -37,7 +37,10 @@ function navHTML(state) {
       : "";
     var person = { name: state.name || "Neighbor", avatar_path: state.avatar_path || null };
     return adminLink +
-      '<a href="' + base() + 'pages/messages.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--ink-2);text-decoration:none;padding:.5rem .8rem">Messages</a>' +
+      '<a href="' + base() + 'pages/messages.html" style="font-weight:700;font-size:var(--fs-sm);color:var(--ink-2);text-decoration:none;padding:.5rem .8rem">Messages' +
+        '<span class="nav__badge" data-unread' +
+        (state.unread > 0 ? ">" + (state.unread > 99 ? "99+" : state.unread) : " hidden>") +
+        "</span></a>" +
       '<a class="btn btn--money btn--sm" href="' + base() + 'pages/post.html">+ Post</a>' +
       '<a href="' + base() + 'pages/profile.html" class="nav__avatar-link" title="' + (state.name || "") + '">' +
         avatarHTML(person, "sm") + "</a>" +
@@ -67,9 +70,11 @@ async function renderNavUser() {
   try { profile = await getProfile(); } catch (e) { /* offline / not logged in */ }
   var fresh;
   if (profile) {
-    var isAdmin = false;
+    var isAdmin = false, unread = 0;
     try { isAdmin = await amIAdmin(); } catch (e) { /* not admin */ }
-    fresh = { loggedIn: true, name: profile.name, avatar_path: profile.avatar_path || null, isAdmin: isAdmin };
+    try { unread = await myUnreadCount(); } catch (e) { /* badge optional */ }
+    fresh = { loggedIn: true, name: profile.name, avatar_path: profile.avatar_path || null,
+              isAdmin: isAdmin, unread: unread };
   } else {
     fresh = { loggedIn: false };
   }
