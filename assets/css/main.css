@@ -96,7 +96,7 @@ button { font-family: inherit; }
 .btn--money:hover { transform: translateY(-1px); box-shadow: 0 9px 24px rgba(22,163,74,.38); }
 .btn--ghost { background: var(--surface); color: var(--ink); border-color: var(--border-2); box-shadow: var(--shadow-sm); }
 .btn--ghost:hover { background: var(--surface-2); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-.btn--primary:active, .btn--money:active, .btn--ghost:active { transform: translateY(1px); }
+.btn--primary:active, .btn--money:active, .btn--ghost:active, .btn--danger:active { transform: translateY(1px); }
 .btn--block { width: 100%; }
 .btn--lg { padding: .95rem 1.5rem; font-size: var(--fs-base); }
 .btn--sm { padding: .5rem .85rem; font-size: var(--fs-sm); }

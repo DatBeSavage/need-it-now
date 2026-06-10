@@ -57,15 +57,21 @@ export function toast(msg, opts) {
   return dismiss;
 }
 
+var _dialogOpen = false;
+var _dialogCount = 0;
+
 /* confirmDialog({title, body, confirmLabel, cancelLabel, danger}) -> Promise<boolean> */
 export function confirmDialog(opts) {
+  if (_dialogOpen) return Promise.resolve(false);
+  _dialogOpen = true;
   opts = opts || {};
   return new Promise(function (resolve) {
+    var uid = "confirm-title-" + (++_dialogCount);
     var back = document.createElement("div");
     back.className = "modal-back open";
     back.innerHTML =
-      '<div class="modal card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">' +
-        '<h3 id="confirm-title"></h3>' +
+      '<div class="modal card" role="dialog" aria-modal="true" aria-labelledby="' + uid + '">' +
+        '<h3 id="' + uid + '"></h3>' +
         '<p class="muted" data-body></p>' +
         '<div class="confirm__actions">' +
           '<button type="button" class="btn btn--ghost" data-cancel></button>' +
@@ -73,6 +79,7 @@ export function confirmDialog(opts) {
         "</div></div>";
     back.querySelector("h3").textContent = opts.title || "Are you sure?";
     back.querySelector("[data-body]").textContent = opts.body || "";
+    if (!opts.body) back.querySelector("[data-body]").hidden = true;
     var cancel = back.querySelector("[data-cancel]");
     var ok = back.querySelector("[data-ok]");
     cancel.textContent = opts.cancelLabel || "Cancel";
@@ -80,6 +87,7 @@ export function confirmDialog(opts) {
     ok.classList.add(opts.danger ? "btn--danger" : "btn--primary");
     var prevFocus = document.activeElement;
     function done(val) {
+      _dialogOpen = false;
       document.removeEventListener("keydown", onKey, true);
       back.remove();
       if (prevFocus && prevFocus.focus) prevFocus.focus();
