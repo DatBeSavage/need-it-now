@@ -439,3 +439,63 @@ create policy "avatars_update_own" on storage.objects
 create policy "avatars_delete_own" on storage.objects
   for delete to authenticated
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text);
+
+-- ============================================================
+-- Site settings + rules  (Admin Increment D)
+-- ============================================================
+create table if not exists public.app_settings (
+  key        text primary key,
+  value      text not null default '',
+  updated_at timestamptz not null default now()
+);
+alter table public.app_settings enable row level security;
+drop policy if exists "settings_select_all"  on public.app_settings;
+drop policy if exists "settings_insert_admin" on public.app_settings;
+drop policy if exists "settings_update_admin" on public.app_settings;
+create policy "settings_select_all"  on public.app_settings for select using (true);
+create policy "settings_insert_admin" on public.app_settings for insert with check (public.is_admin());
+create policy "settings_update_admin" on public.app_settings for update
+  using (public.is_admin()) with check (public.is_admin());
+
+insert into public.app_settings (key, value) values
+  ('max_listings_per_day', '0'),
+  ('banned_words', ''),
+  ('guidelines', 'Be respectful. No scams or illegal items. Meet in public, well-lit places and trust your instincts.')
+on conflict (key) do nothing;
+
+-- Daily listing limit (0/blank = unlimited; admins exempt).
+create or replace function public.guard_daily_listing_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare lim int; cnt int;
+begin
+  select nullif(btrim(value), '')::int into lim from public.app_settings where key = 'max_listings_per_day';
+  if lim is null or lim <= 0 then return new; end if;
+  if public.is_admin() then return new; end if;
+  select count(*) into cnt from public.listings
+    where user_id = new.user_id and created_at > now() - interval '24 hours';
+  if cnt >= lim then raise exception 'Daily listing limit reached (% per day).', lim; end if;
+  return new;
+end; $$;
+drop trigger if exists trg_daily_listing_limit on public.listings;
+create trigger trg_daily_listing_limit before insert on public.listings
+  for each row execute function public.guard_daily_listing_limit();
+
+-- Banned-words filter on listing title + description.
+create or replace function public.guard_banned_words()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare words text; w text; hay text;
+begin
+  select value into words from public.app_settings where key = 'banned_words';
+  if words is null or btrim(words) = '' then return new; end if;
+  hay := lower(coalesce(new.title,'') || ' ' || coalesce(new.description,''));
+  foreach w in array string_to_array(lower(words), ',') loop
+    w := btrim(w);
+    if w <> '' and position(w in hay) > 0 then
+      raise exception 'Your listing contains a blocked word.';
+    end if;
+  end loop;
+  return new;
+end; $$;
+drop trigger if exists trg_banned_words on public.listings;
+create trigger trg_banned_words before insert on public.listings
+  for each row execute function public.guard_banned_words();

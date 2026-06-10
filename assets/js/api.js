@@ -345,3 +345,18 @@ export async function adminListBanned() {
   if (error) throw error;
   return data || [];
 }
+
+/* ---------------- Site settings ---------------- */
+export async function getSettings() {
+  const { data, error } = await supabase.from("app_settings").select("key,value");
+  if (error) throw error;
+  const out = {};
+  (data || []).forEach(function (r) { out[r.key] = r.value; });
+  return out;
+}
+
+export async function adminSetSetting(key, value) {
+  const { error } = await supabase.from("app_settings")
+    .upsert({ key: key, value: value, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}

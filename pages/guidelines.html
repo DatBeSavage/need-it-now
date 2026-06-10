@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Messages — Need-It-Now</title>
+  <title>Community Guidelines — Need-It-Now</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -20,21 +20,25 @@
       <div class="nav__links">
         <a href="../index.html">Home</a>
         <a href="feed.html">Browse</a>
-        <a href="guidelines.html">Guidelines</a>
+        <a href="guidelines.html" class="active">Guidelines</a>
       </div>
       <div class="nav__user" data-nav-user></div>
     </div>
   </nav>
 
-  <main class="wrap">
-    <div class="feed-head">
-      <h1>Messages</h1>
-      <p>Your conversations about local listings.</p>
-    </div>
-    <div id="threads" class="threads" style="margin-bottom:var(--sp-7)"></div>
+  <main class="wrap" style="max-width:680px;padding-block:var(--sp-6)">
+    <h1 style="font-size:var(--fs-xl);margin-bottom:var(--sp-4)">Community Guidelines</h1>
+    <div id="guide" class="card" style="padding:var(--sp-5);white-space:pre-wrap">Loading…</div>
   </main>
 
   <script type="module" src="../assets/js/auth.js"></script>
-  <script type="module" src="../assets/js/messages.js"></script>
+  <script type="module">
+    import { getSettings } from "../assets/js/api.js";
+    getSettings().then(function (s) {
+      document.getElementById("guide").textContent = (s && s.guidelines) || "Be respectful and trade safely.";
+    }).catch(function () {
+      document.getElementById("guide").textContent = "Be respectful and trade safely.";
+    });
+  </script>
 </body>
 </html>

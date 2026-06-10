@@ -1,7 +1,8 @@
 // Need-It-Now — admin dashboard (gated; read-only monitoring).
 import { amIAdmin, adminListReports, adminListUsers, adminListListings, adminGetConversation,
          setReportStatus, setListingHidden, adminDeleteListing,
-         banUser, unbanUser, adminListBanned, getProfile } from "./api.js";
+         banUser, unbanUser, adminListBanned, getProfile,
+         getSettings, adminSetSetting } from "./api.js";
 import { go, toast } from "./auth.js";
 import { avatarHTML } from "./avatar.js";
 import { resolveZip } from "./config.js";
@@ -155,7 +156,35 @@ async function renderListings(panel) {
   });
 }
 
-var RENDER = { reports: renderReports, users: renderUsers, listings: renderListings };
+async function renderSettings(panel) {
+  panel.innerHTML = '<p class="muted">Loading settings…</p>';
+  var s = {};
+  try { s = await getSettings(); } catch (e) { /* */ }
+  panel.innerHTML =
+    '<form class="card" data-settings style="padding:var(--sp-5);max-width:560px">' +
+      '<div class="field"><label for="set-max">Max listings per user per day (0 = unlimited)</label>' +
+        '<input class="input" id="set-max" type="number" min="0" value="' + esc(s.max_listings_per_day || "0") + '" /></div>' +
+      '<div class="field"><label for="set-words">Banned words (comma-separated)</label>' +
+        '<input class="input" id="set-words" value="' + esc(s.banned_words || "") + '" /></div>' +
+      '<div class="field"><label for="set-guide">Community guidelines</label>' +
+        '<textarea class="textarea" id="set-guide" style="min-height:160px">' + esc(s.guidelines || "") + "</textarea></div>" +
+      '<button class="btn btn--primary" type="submit">Save settings</button>' +
+    "</form>";
+  panel.querySelector("[data-settings]").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var btn = panel.querySelector('button[type="submit"]');
+    btn.disabled = true; btn.textContent = "Saving…";
+    try {
+      await adminSetSetting("max_listings_per_day", String(parseInt(panel.querySelector("#set-max").value, 10) || 0));
+      await adminSetSetting("banned_words", panel.querySelector("#set-words").value);
+      await adminSetSetting("guidelines", panel.querySelector("#set-guide").value);
+      toast("Settings saved.");
+    } catch (e2) { toast((e2 && e2.message) || "Couldn't save settings."); }
+    finally { btn.disabled = false; btn.textContent = "Save settings"; }
+  });
+}
+
+var RENDER = { reports: renderReports, users: renderUsers, listings: renderListings, settings: renderSettings };
 
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(function (t) {
