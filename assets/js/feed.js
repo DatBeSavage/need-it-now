@@ -3,6 +3,7 @@ import { nearbyListings, getProfile, deleteListing, listingPhotoUrl } from "./ap
 import { resolveZip } from "./config.js";
 import { fillZipDatalist } from "./zips.js";
 import { toast, go } from "./auth.js";
+import { confirmDialog } from "./ui.js";
 import { openChatForListing } from "./chat.js";
 import { avatarHTML } from "./avatar.js";
 import { starBadge } from "./stars.js";
@@ -144,13 +145,17 @@ async function render() {
 }
 
 async function confirmDelete(id) {
-  if (!window.confirm("Delete this listing? This can't be undone.")) return;
+  var ok = await confirmDialog({
+    title: "Delete this listing?", body: "This can't be undone.",
+    confirmLabel: "Delete", danger: true,
+  });
+  if (!ok) return;
   try {
     await deleteListing(id);
-    toast("Listing deleted.");
+    toast("Listing deleted.", { type: "success" });
     render();
   } catch (e) {
-    toast((e && e.message) || "Couldn't delete — try again.");
+    toast((e && e.message) || "Couldn't delete — try again.", { type: "error" });
   }
 }
 

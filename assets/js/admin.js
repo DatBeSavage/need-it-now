@@ -5,6 +5,7 @@ import { amIAdmin, adminListReports, adminListUsers, adminListListings, adminGet
          getSettings, adminSetSetting,
          getCategories, adminSaveCategory, adminDeleteCategory } from "./api.js";
 import { go, toast } from "./auth.js";
+import { confirmDialog } from "./ui.js";
 import { avatarHTML } from "./avatar.js";
 import { resolveZip } from "./config.js";
 import { starBadge } from "./stars.js";
@@ -150,9 +151,13 @@ async function renderListings(panel) {
   });
   panel.querySelectorAll("[data-del]").forEach(function (btn) {
     btn.addEventListener("click", async function () {
-      if (!window.confirm("Delete this listing permanently?")) return;
+      var ok = await confirmDialog({
+        title: "Delete this listing permanently?", body: "This removes the listing for everyone.",
+        confirmLabel: "Delete", danger: true,
+      });
+      if (!ok) return;
       try { await adminDeleteListing(btn.getAttribute("data-del")); renderListings(panel); }
-      catch (e) { toast("Couldn't delete listing."); }
+      catch (e) { toast("Couldn't delete listing.", { type: "error" }); }
     });
   });
 }
@@ -222,9 +227,13 @@ async function renderCategories(panel) {
   });
   panel.querySelectorAll("[data-cat-del]").forEach(function (btn) {
     btn.addEventListener("click", async function () {
-      if (!window.confirm("Delete this category?")) return;
+      var ok = await confirmDialog({
+        title: "Delete this category?", body: "Existing listings keep their value; the option disappears from the post form.",
+        confirmLabel: "Delete", danger: true,
+      });
+      if (!ok) return;
       try { await adminDeleteCategory(btn.getAttribute("data-cat-del")); renderCategories(panel); }
-      catch (e) { toast("Couldn't delete category."); }
+      catch (e) { toast("Couldn't delete category.", { type: "error" }); }
     });
   });
   var add = panel.querySelector("#newcat-add");

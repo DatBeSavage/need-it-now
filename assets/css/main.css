@@ -100,6 +100,9 @@ button { font-family: inherit; }
 .btn--block { width: 100%; }
 .btn--lg { padding: .95rem 1.5rem; font-size: var(--fs-base); }
 .btn--sm { padding: .5rem .85rem; font-size: var(--fs-sm); }
+.btn--danger { background: var(--danger); color: #fff; box-shadow: 0 6px 18px rgba(226,72,59,.35); }
+.btn--danger:hover { transform: translateY(-1px); box-shadow: 0 9px 24px rgba(226,72,59,.45); }
+.confirm__actions { display: flex; gap: var(--sp-2); justify-content: flex-end; margin-top: var(--sp-5); }
 
 /* ---------- Forms ---------- */
 .field { margin-bottom: var(--sp-4); }

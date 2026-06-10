@@ -56,3 +56,49 @@ export function toast(msg, opts) {
   }
   return dismiss;
 }
+
+/* confirmDialog({title, body, confirmLabel, cancelLabel, danger}) -> Promise<boolean> */
+export function confirmDialog(opts) {
+  opts = opts || {};
+  return new Promise(function (resolve) {
+    var back = document.createElement("div");
+    back.className = "modal-back open";
+    back.innerHTML =
+      '<div class="modal card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">' +
+        '<h3 id="confirm-title"></h3>' +
+        '<p class="muted" data-body></p>' +
+        '<div class="confirm__actions">' +
+          '<button type="button" class="btn btn--ghost" data-cancel></button>' +
+          '<button type="button" class="btn" data-ok></button>' +
+        "</div></div>";
+    back.querySelector("h3").textContent = opts.title || "Are you sure?";
+    back.querySelector("[data-body]").textContent = opts.body || "";
+    var cancel = back.querySelector("[data-cancel]");
+    var ok = back.querySelector("[data-ok]");
+    cancel.textContent = opts.cancelLabel || "Cancel";
+    ok.textContent = opts.confirmLabel || "OK";
+    ok.classList.add(opts.danger ? "btn--danger" : "btn--primary");
+    var prevFocus = document.activeElement;
+    function done(val) {
+      document.removeEventListener("keydown", onKey, true);
+      back.remove();
+      if (prevFocus && prevFocus.focus) prevFocus.focus();
+      resolve(val);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") { e.preventDefault(); done(false); }
+      else if (e.key === "Tab") {
+        var f = [cancel, ok];
+        var i = f.indexOf(document.activeElement);
+        e.preventDefault();
+        f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+      }
+    }
+    back.addEventListener("click", function (e) { if (e.target === back) done(false); });
+    cancel.addEventListener("click", function () { done(false); });
+    ok.addEventListener("click", function () { done(true); });
+    document.addEventListener("keydown", onKey, true);
+    document.body.appendChild(back);
+    cancel.focus();
+  });
+}
