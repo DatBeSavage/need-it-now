@@ -263,6 +263,29 @@ export async function markDealt(conversationId) {
   return data;
 }
 
+/* ---------------- Unread / notifications ---------------- */
+export async function markConversationRead(conversationId) {
+  const { error } = await supabase.rpc("mark_conversation_read", { conv_id: conversationId });
+  if (error) throw error;
+}
+
+export async function myUnreadCount() {
+  const { data, error } = await supabase.rpc("my_unread_count");
+  if (error) return 0; // never break page render over a badge
+  return data || 0;
+}
+
+/* All message INSERTs visible to me (RLS scopes delivery to my conversations). */
+export function subscribeMyMessages(onInsert) {
+  const channel = supabase
+    .channel("messages:mine")
+    .on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages" },
+      function (payload) { onInsert(payload.new); })
+    .subscribe();
+  return function () { supabase.removeChannel(channel); };
+}
+
 export async function getMyRating(conversationId) {
   const profile = await getProfile();
   if (!profile) return null;
