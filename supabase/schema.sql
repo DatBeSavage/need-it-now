@@ -630,3 +630,48 @@ create policy "listings_photos_update" on storage.objects
 create policy "listings_photos_delete" on storage.objects
   for delete to authenticated
   using (bucket_id = 'listings' and (storage.foldername(name))[1] = (auth.uid())::text);
+
+-- ============================================================
+-- Unread tracking: per-side read markers (clients have no UPDATE
+-- grant on these; only the RPC below writes them — same model as
+-- mark_dealt / dealt_*_at).
+-- ============================================================
+alter table public.conversations add column if not exists buyer_read_at timestamptz;
+alter table public.conversations add column if not exists owner_read_at timestamptz;
+
+-- Sets ONLY the calling party's read marker.
+create or replace function public.mark_conversation_read(conv_id uuid)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare c public.conversations%rowtype;
+begin
+  select * into c from public.conversations where id = conv_id;
+  if not found then raise exception 'Conversation not found'; end if;
+  if auth.uid() = c.buyer_id then
+    update public.conversations set buyer_read_at = now() where id = conv_id;
+  elsif auth.uid() = c.owner_id then
+    update public.conversations set owner_read_at = now() where id = conv_id;
+  else
+    raise exception 'Not authorized';
+  end if;
+end; $$;
+revoke execute on function public.mark_conversation_read(uuid) from public, anon;
+grant  execute on function public.mark_conversation_read(uuid) to authenticated;
+
+-- Conversations holding a message from the OTHER party newer than my marker.
+create or replace function public.my_unread_count()
+returns integer
+language sql stable security definer set search_path = public as $$
+  select count(*)::int from public.conversations c
+  where (c.buyer_id = auth.uid() or c.owner_id = auth.uid())
+    and exists (
+      select 1 from public.messages m
+      where m.conversation_id = c.id
+        and m.sender_id <> auth.uid()
+        and m.created_at > coalesce(
+          case when c.buyer_id = auth.uid() then c.buyer_read_at else c.owner_read_at end,
+          'epoch'::timestamptz)
+    );
+$$;
+revoke execute on function public.my_unread_count() from public, anon;
+grant  execute on function public.my_unread_count() to authenticated;
