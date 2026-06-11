@@ -193,6 +193,7 @@ async function confirmDelete(id) {
   try {
     await deleteListing(id);
     toast("Listing deleted.", { type: "success" });
+    try { sessionStorage.removeItem(FEED_CACHE); } catch (e) { /* blocked */ }
   } catch (e) {
     delete deletedIds[id];
     lastRows = prevRows;

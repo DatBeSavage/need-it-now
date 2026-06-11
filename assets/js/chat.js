@@ -1,5 +1,5 @@
 // Need-It-Now — reusable real-time chat panel.
-import { getOrCreateConversation, getMessages, sendMessage, subscribeMessages, getProfile,
+import { getOrCreateConversation, findConversation, getMessages, sendMessage, subscribeMessages, getProfile,
          markDealt, getMyRating, createRating } from "./api.js";
 import { toast, base } from "./auth.js";
 import { escToClose } from "./ui.js";
@@ -143,6 +143,11 @@ async function openPanel(opts, person, sub) {
   if (!profile) { location.href = base() + "pages/login.html"; return; }
   meId = profile.id; seen = {};
   var conv = opts.conv || null;
+  if (!conv && opts.listing && opts.listing.id) {
+    // Re-opening a listing I already messaged: load that thread (find-only —
+    // creating eagerly would bump response_count and the conversation rate guard).
+    try { conv = await findConversation(opts.listing.id); } catch (e) { /* lazy create on send */ }
+  }
   var m = modal(), log = m.querySelector("[data-log]"), input = m.querySelector("[data-input]");
   m.querySelector("[data-av]").innerHTML = avatarHTML(person, "md");
   m.querySelector("[data-who]").textContent = person.name;

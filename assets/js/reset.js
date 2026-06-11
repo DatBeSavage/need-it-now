@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       await updatePassword(p1);
       toast("Password updated — you're logged in.", { type: "success" });
-      go("pages/feed.html");
+      setTimeout(function () { go("pages/feed.html"); }, 900);
     } catch (e2) {
       err.textContent = (e2 && e2.message) || "Couldn't update the password.";
       btn.disabled = false; btn.textContent = "Save new password";

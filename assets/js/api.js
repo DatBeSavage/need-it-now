@@ -201,6 +201,19 @@ export async function uploadAvatar(file) {
 }
 
 /* ---------------- Conversations & messages ---------------- */
+/* Find my existing conversation for a listing (never creates one). */
+export async function findConversation(listingId) {
+  const profile = await getProfile();
+  if (!profile) return null;
+  const { data } = await supabase
+    .from("conversations")
+    .select("*")
+    .eq("listing_id", listingId)
+    .eq("buyer_id", profile.id)
+    .maybeSingle();
+  return data || null;
+}
+
 export async function getOrCreateConversation(listing) {
   const profile = await getProfile();
   if (!profile) throw new Error("Please log in to start a chat.");

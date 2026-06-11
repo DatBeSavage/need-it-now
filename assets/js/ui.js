@@ -111,12 +111,15 @@ export function confirmDialog(opts) {
   });
 }
 
-/* Esc closes a .modal-back panel while it is open. Call once per backdrop. */
+/* Esc closes a .modal-back panel while it is open. Call once per backdrop.
+   Only the topmost open backdrop (last in DOM order) responds, so stacked
+   modals (report over chat) close one at a time. */
 export function escToClose(backdrop, close) {
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && backdrop.classList.contains("open")) {
-      e.preventDefault();
-      close();
-    }
+    if (e.key !== "Escape" || !backdrop.classList.contains("open")) return;
+    var open = document.querySelectorAll(".modal-back.open");
+    if (open[open.length - 1] !== backdrop) return;
+    e.preventDefault();
+    close();
   });
 }
