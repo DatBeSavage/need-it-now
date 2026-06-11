@@ -73,7 +73,7 @@ async function renderNavUser() {
   if (profile) {
     var isAdmin = false, unread = 0;
     try { isAdmin = await amIAdmin(); } catch (e) { /* not admin */ }
-    try { unread = await myUnreadCount(); } catch (e) { /* badge optional */ }
+    try { unread = (await myUnreadCount()) || 0; } catch (e) { /* badge optional */ }
     fresh = { loggedIn: true, name: profile.name, avatar_path: profile.avatar_path || null,
               isAdmin: isAdmin, unread: unread };
   } else {
@@ -84,6 +84,7 @@ async function renderNavUser() {
   if (fresh.loggedIn && profile) {
     initNotifications({
       me: profile.id,
+      initial: fresh.unread,
       onCountChange: function (n) {
         var s = readNavCache();
         if (s) { s.unread = n; writeNavCache(s); }

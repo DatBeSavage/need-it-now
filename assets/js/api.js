@@ -271,7 +271,7 @@ export async function markConversationRead(conversationId) {
 
 export async function myUnreadCount() {
   const { data, error } = await supabase.rpc("my_unread_count");
-  if (error) return 0; // never break page render over a badge
+  if (error) return null; // unknown — callers keep their current value
   return data || 0;
 }
 

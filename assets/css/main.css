@@ -389,7 +389,7 @@ button { font-family: inherit; }
 .thread--unread .thread__snippet { color: var(--ink); font-weight: 700; }
 .thread__dot {
   width: 9px; height: 9px; border-radius: 50%; background: var(--blue-600);
-  flex: none; display: inline-block; margin-left: .5ch;
+  flex: none; display: inline-block; margin-left: .5ch; margin-right: auto; align-self: center;
 }
 
 /* ---- Avatars ---- */

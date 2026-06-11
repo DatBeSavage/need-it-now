@@ -17,14 +17,19 @@ function paint(n) {
 }
 
 async function refresh() {
-  try { paint(await myUnreadCount()); } catch (e) { /* keep current value */ }
+  try {
+    var n = await myUnreadCount();
+    if (n !== null) paint(n);
+  } catch (e) { /* keep current value */ }
 }
 
 /* Called by auth.js once per page when a user is logged in. */
 export function initNotifications(opts) {
+  if (meId) return; // one subscription per page
   meId = opts.me;
   persist = opts.onCountChange || null;
-  refresh();
+  if (typeof opts.initial === "number") paint(opts.initial);
+  else refresh();
   subscribeMyMessages(async function (msg) {
     if (!msg || msg.sender_id === meId) return;
     if (openConvId && msg.conversation_id === openConvId) {
@@ -32,6 +37,7 @@ export function initNotifications(opts) {
       return; // the open chat panel renders it; no toast
     }
     paint(unread + 1);
+    refresh(); // converge to the server's per-conversation count
     toast("New message from " + (msg.sender_name || "a neighbor"), {
       actionLabel: "View",
       onAction: function () {
@@ -45,8 +51,9 @@ export function initNotifications(opts) {
 
 /* chat.js hooks: keep the open conversation read and the badge honest. */
 export async function noteConversationOpened(convId) {
+  var already = openConvId === convId;
   openConvId = convId;
   try { await markConversationRead(convId); } catch (e) { /* offline */ }
-  refresh();
+  if (!already) refresh();
 }
 export function noteConversationClosed() { openConvId = null; }
