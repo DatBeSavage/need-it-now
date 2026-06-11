@@ -126,9 +126,17 @@ async function render() {
   var token = ++renderToken;
 
   if (!grid.dataset.loaded) {
-    var sk = "";
-    for (var i = 0; i < 6; i++) sk += skeletonHTML();
-    grid.innerHTML = sk;
+    var cached = readFeedCache();
+    if (cached) {
+      lastRows = cached.rows;
+      grid.dataset.loaded = "1";
+      if (count && cached.countText) count.textContent = cached.countText;
+      paintRows(cached.rows); // instant paint; the fetch below reconciles
+    } else {
+      var sk = "";
+      for (var i = 0; i < 6; i++) sk += skeletonHTML();
+      grid.innerHTML = sk;
+    }
   }
 
   var origin = await resolveZip(state.zip);
@@ -166,6 +174,7 @@ async function render() {
     }
   }
   paintRows(rows);
+  writeFeedCache(rows, count ? count.textContent : "");
 }
 
 async function confirmDelete(id) {
@@ -231,6 +240,18 @@ function writeStateToURL() {
   if (state.q) p.set("q", state.q);
   var qs = p.toString();
   history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
+}
+var FEED_CACHE = "nin_feed_v1";
+function stateKey() { return JSON.stringify([state.zip, state.radius, state.type, state.q]); }
+function readFeedCache() {
+  try {
+    var c = JSON.parse(sessionStorage.getItem(FEED_CACHE) || "null");
+    return (c && c.key === stateKey()) ? c : null;
+  } catch (e) { return null; }
+}
+function writeFeedCache(rows, countText) {
+  try { sessionStorage.setItem(FEED_CACHE, JSON.stringify({ key: stateKey(), rows: rows, countText: countText })); }
+  catch (e) { /* full / blocked */ }
 }
 function wireControls() {
   var loc = document.getElementById("ctl-zip");
