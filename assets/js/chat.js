@@ -2,11 +2,12 @@
 import { getOrCreateConversation, getMessages, sendMessage, subscribeMessages, getProfile,
          markDealt, getMyRating, createRating } from "./api.js";
 import { toast, base } from "./auth.js";
+import { escToClose } from "./ui.js";
 import { noteConversationOpened, noteConversationClosed } from "./notify.js";
 import { avatarHTML } from "./avatar.js";
 import { openReport } from "./report.js";
 
-var meId = null, unsub = null, seen = {};
+var meId = null, unsub = null, seen = {}, lastOpener = null;
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -38,6 +39,7 @@ function modal() {
   document.body.appendChild(m);
   m.addEventListener("click", function (e) { if (e.target === m) close(); });
   m.querySelector("[data-close]").addEventListener("click", close);
+  escToClose(m, close);
   return m;
 }
 
@@ -61,6 +63,7 @@ function close() {
   if (unsub) { unsub(); unsub = null; }
   seen = {};
   noteConversationClosed();
+  if (lastOpener && lastOpener.focus) { lastOpener.focus(); lastOpener = null; }
 }
 
 function listen(log, convId) {
@@ -135,6 +138,7 @@ function showRateForm(m, conv, otherId) {
 
 // opts: { conv } for an existing thread, or { listing } for a lazy new thread.
 async function openPanel(opts, person, sub) {
+  lastOpener = document.activeElement;
   var profile = await getProfile();
   if (!profile) { location.href = base() + "pages/login.html"; return; }
   meId = profile.id; seen = {};

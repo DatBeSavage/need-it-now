@@ -1,6 +1,7 @@
 // Need-It-Now — shared "Report" modal (reused by feed, chat, profile).
 import { createReport } from "./api.js";
 import { toast } from "./auth.js";
+import { escToClose } from "./ui.js";
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -30,6 +31,7 @@ function build() {
   document.body.appendChild(m);
   m.addEventListener("click", function (e) { if (e.target === m) m.classList.remove("open"); });
   m.querySelector("[data-rcancel]").addEventListener("click", function () { m.classList.remove("open"); });
+  escToClose(m, function () { m.classList.remove("open"); });
   return m;
 }
 

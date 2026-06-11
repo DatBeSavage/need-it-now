@@ -110,3 +110,13 @@ export function confirmDialog(opts) {
     cancel.focus();
   });
 }
+
+/* Esc closes a .modal-back panel while it is open. Call once per backdrop. */
+export function escToClose(backdrop, close) {
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && backdrop.classList.contains("open")) {
+      e.preventDefault();
+      close();
+    }
+  });
+}
