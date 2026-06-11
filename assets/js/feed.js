@@ -84,6 +84,17 @@ function cardHTML(row) {
     "</article>";
 }
 
+function skeletonHTML() {
+  return '<article class="listing" aria-hidden="true">' +
+    '<div class="listing__media skel"></div>' +
+    '<div class="listing__body">' +
+      '<div class="skel" style="height:14px;width:40%"></div>' +
+      '<div class="skel" style="height:22px;width:75%"></div>' +
+      '<div class="skel" style="height:14px;width:90%"></div>' +
+      '<div class="skel" style="height:14px;width:55%"></div>' +
+    "</div></article>";
+}
+
 var renderToken = 0;
 async function render() {
   var grid = document.getElementById("listings");
@@ -93,7 +104,9 @@ async function render() {
   if (token !== renderToken) return; // a newer render superseded this lookup
 
   if (!grid.dataset.loaded) {
-    grid.innerHTML = '<div class="empty"><div class="em">⏳</div><p>Finding listings near you…</p></div>';
+    var sk = "";
+    for (var i = 0; i < 6; i++) sk += skeletonHTML();
+    grid.innerHTML = sk;
   }
 
   var rows;
