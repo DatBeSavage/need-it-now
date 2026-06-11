@@ -9,8 +9,9 @@ the same data. The browser talks to Supabase directly over HTTPS using the
 
 ## Where things live
 - **Landing page**: `index.html` in the project root.
-- **App pages** live in `pages/`: `register.html`, `login.html`, `post.html`,
-  `feed.html`. Each is standalone HTML.
+- **App pages** live in `pages/`: `register.html`, `login.html`, `reset.html`,
+  `post.html`, `feed.html`, `messages.html`, `profile.html`, `admin.html`,
+  `guidelines.html`. Each is standalone HTML.
 - **Styles** are in `assets/css/`:
   - `tokens.css` — design tokens in `:root` (blue primary, green money accent,
     neutrals, type + spacing scale, radius, shadows). Re-theme here.
@@ -20,9 +21,17 @@ the same data. The browser talks to Supabase directly over HTTPS using the
     and `zipCoord()`.
   - `api.js` — creates the Supabase client (imported from esm.sh) and exports the
     data API: `signUp/signIn/signOut`, `getUser/getProfile`, `nearbyListings`
-    (calls the `nearby_listings` RPC), `createListing`, `addResponse`.
+    (calls the `nearby_listings` RPC), `createListing`.
   - `auth.js` — renders nav user state on every page, register/login/logout
     handlers, `requireAuth()` guard, `toast()`, `go()/base()` helpers.
+  - `ui.js` — shared UI primitives: `toast(msg, opts)` (variants/stacking/actions,
+    aria-live), `confirmDialog()` (promise-based styled confirm), `escToClose()`.
+  - `notify.js` — global realtime new-message notifications: nav unread badge,
+    "(n)" tab-title prefix, toast with View action; chat.js reports open/close
+    so the open conversation stays marked read.
+  - `chat.js` / `messages.js` — realtime chat panel and the Messages inbox
+    (unread rows bold + dot, read markers via `mark_conversation_read`).
+  - `reset.js` — password-reset page (request link / recovery update).
   - `feed.js` — feed page: location + radius filtering, type chips, search,
     respond modal. Distance + response counts come from the RPC rows.
   - `post.js` — create-listing form on `post.html`.
@@ -44,7 +53,10 @@ the same data. The browser talks to Supabase directly over HTTPS using the
   Protected columns are written only by privileged code: `rating_avg`/`rating_count` by
   the `recompute_rating` trigger; `listings.hidden` by the `admin_set_listing_hidden()`
   RPC (admin-only); deal confirmation by `mark_dealt()` (sets only the caller's side —
-  both parties must confirm before `dealt_at` is set, which gates ratings). Any URL built
+  both parties must confirm before `dealt_at` is set, which gates ratings);
+  `conversations.buyer_read_at`/`owner_read_at` are written only by
+  `mark_conversation_read()` (sets the caller's side); unread badges come from
+  `my_unread_count()`. Any URL built
   from a stored field (avatar_path, photos) MUST be HTML-escaped before going into markup.
 - **Listing photos**: up to 4 per listing in `listings.photos text[]`, stored in the
   public `listings` storage bucket under `<uid>/...`; first photo is the card cover.
