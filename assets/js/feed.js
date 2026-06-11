@@ -49,7 +49,7 @@ function cardHTML(row) {
     : (d < 1 ? "<1 mi away" : Math.round(d) + " mi away");
   var priceLabel = row.type === "sell" ? money(row.price) : "Budget " + money(row.price);
   return '' +
-    '<article class="listing">' +
+    '<article class="listing" data-id="' + row.id + '">' +
       '<div class="listing__media">' +
         (row.photos && row.photos.length
           ? '<img class="listing__photo" src="' + escapeHTML(listingPhotoUrl(row.photos[0])) + '" alt="" loading="lazy" />'
@@ -163,12 +163,17 @@ async function confirmDelete(id) {
     confirmLabel: "Delete", danger: true,
   });
   if (!ok) return;
+  var grid = document.getElementById("listings");
+  var card = grid && grid.querySelector('.listing[data-id="' + id + '"]');
+  if (card) card.remove();
+  lastRows = lastRows.filter(function (r) { return r.id !== id; });
   try {
     await deleteListing(id);
     toast("Listing deleted.", { type: "success" });
-    render();
+    if (grid && !grid.querySelector(".listing")) render(); // show empty state
   } catch (e) {
     toast((e && e.message) || "Couldn't delete — try again.", { type: "error" });
+    render(); // restore the card
   }
 }
 
