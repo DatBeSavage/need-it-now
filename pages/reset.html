@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset password — Need-It-Now</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://yubhbztyprfupvjwxwmm.supabase.co" crossorigin />
+  <link rel="preconnect" href="https://esm.sh" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/tokens.css" />
+  <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="brand" href="../index.html">
+        <span class="brand__mark">⚡</span>
+        <span class="full"><b>Need</b>-<b>It</b><span style="color:var(--ink)">-Now</span></span>
+      </a>
+      <div class="nav__links">
+        <a href="../index.html">Home</a>
+        <a href="feed.html">Browse</a>
+        <a href="guidelines.html">Guidelines</a>
+      </div>
+      <div class="nav__user" data-nav-user></div>
+    </div>
+  </nav>
+
+  <main class="auth-wrap">
+    <form class="card auth-card reveal" data-reset-request novalidate>
+      <h1>Reset your password</h1>
+      <p class="sub">Enter your account email and we'll send a reset link.</p>
+      <div class="field">
+        <label for="rp-email">Email</label>
+        <input class="input" id="rp-email" name="email" type="email" autocomplete="email" placeholder="you@email.com" />
+      </div>
+      <p class="form-error" role="alert"></p>
+      <button class="btn btn--primary btn--block btn--lg" type="submit">Send reset link</button>
+      <p class="auth-foot">Remembered it? <a href="login.html">Log in</a></p>
+    </form>
+
+    <form class="card auth-card reveal" data-reset-update hidden novalidate>
+      <h1>Choose a new password</h1>
+      <p class="sub">You're almost back in.</p>
+      <div class="field">
+        <label for="rp-pass">New password</label>
+        <input class="input" id="rp-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 6 characters" />
+      </div>
+      <div class="field">
+        <label for="rp-pass2">Repeat it</label>
+        <input class="input" id="rp-pass2" name="password2" type="password" autocomplete="new-password" placeholder="Same password again" />
+      </div>
+      <p class="form-error" role="alert"></p>
+      <button class="btn btn--primary btn--block btn--lg" type="submit">Save new password</button>
+    </form>
+  </main>
+
+  <script type="module" src="../assets/js/auth.js"></script>
+  <script type="module" src="../assets/js/reset.js"></script>
+</body>
+</html>

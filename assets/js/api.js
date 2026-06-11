@@ -25,6 +25,20 @@ export async function signOut() {
   await supabase.auth.signOut();
 }
 
+export async function requestPasswordReset(email) {
+  // Works on both the local preview and GitHub Pages (sub-path safe).
+  const root = location.origin + location.pathname.replace(/pages\/[^/]*$/, "");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: root + "pages/reset.html",
+  });
+  if (error) throw error;
+}
+
+export async function updatePassword(newPassword) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
 /* Current auth user (or null). */
 export async function getUser() {
   const { data } = await supabase.auth.getUser();
