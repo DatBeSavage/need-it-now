@@ -71,11 +71,12 @@ async function renderNavUser() {
   try { profile = await getProfile(); } catch (e) { /* offline / not logged in */ }
   var fresh;
   if (profile) {
-    var isAdmin = false, unread = 0;
-    try { isAdmin = await amIAdmin(); } catch (e) { /* not admin */ }
-    try { unread = (await myUnreadCount()) || 0; } catch (e) { /* badge optional */ }
+    var extras = await Promise.all([
+      amIAdmin().catch(function () { return false; }),
+      myUnreadCount().catch(function () { return null; }),
+    ]);
     fresh = { loggedIn: true, name: profile.name, avatar_path: profile.avatar_path || null,
-              isAdmin: isAdmin, unread: unread };
+              isAdmin: extras[0], unread: extras[1] || 0 };
   } else {
     fresh = { loggedIn: false };
   }
