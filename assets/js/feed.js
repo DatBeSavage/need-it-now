@@ -180,7 +180,10 @@ function reportListing(id) {
 }
 
 var renderTimer;
-function scheduleRender() { clearTimeout(renderTimer); renderTimer = setTimeout(render, 250); }
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(function () { writeStateToURL(); render(); }, 250);
+}
 
 /* ---- Respond modal ---- */
 function openRespond(id) {
@@ -190,12 +193,33 @@ function openRespond(id) {
   openChatForListing(row);
 }
 
+function readStateFromURL() {
+  var p = new URLSearchParams(location.search);
+  if (p.get("zip")) state.zip = p.get("zip");
+  if (p.get("radius")) state.radius = +p.get("radius") || state.radius;
+  if (p.get("type") === "sell" || p.get("type") === "buy") state.type = p.get("type");
+  if (p.get("q")) state.q = p.get("q");
+}
+function writeStateToURL() {
+  var p = new URLSearchParams();
+  if (state.zip) p.set("zip", state.zip);
+  if (state.radius !== 25) p.set("radius", String(state.radius));
+  if (state.type !== "all") p.set("type", state.type);
+  if (state.q) p.set("q", state.q);
+  var qs = p.toString();
+  history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
+}
 function wireControls() {
   var loc = document.getElementById("ctl-zip");
   var rad = document.getElementById("ctl-radius");
   var search = document.getElementById("ctl-search");
 
   state.zip = (currentProfile && currentProfile.zip) || "78701";
+  readStateFromURL(); // shared/refreshed URLs win over the profile default
+  search.value = state.q;
+  document.querySelectorAll(".chip").forEach(function (c) {
+    c.classList.toggle("active", c.getAttribute("data-filter") === state.type);
+  });
   loc.value = state.zip;
   rad.value = String(state.radius);
 
@@ -208,6 +232,7 @@ function wireControls() {
       document.querySelectorAll(".chip").forEach(function (c) { c.classList.remove("active"); });
       chip.classList.add("active");
       state.type = chip.getAttribute("data-filter");
+      writeStateToURL();
       render();
     });
   });
