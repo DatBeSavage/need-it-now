@@ -92,53 +92,15 @@ function skeletonHTML() {
       '<div class="skel" style="height:22px;width:75%"></div>' +
       '<div class="skel" style="height:14px;width:90%"></div>' +
       '<div class="skel" style="height:14px;width:55%"></div>' +
-    "</div></article>";
+    "</div>" +
+    '<div class="listing__foot"><div class="skel" style="height:34px;width:100%"></div></div>' +
+  "</article>";
 }
 
-var renderToken = 0;
-async function render() {
+var deletedIds = {}; // optimistic deletes — never repaint these from an in-flight fetch
+
+function paintRows(rows) {
   var grid = document.getElementById("listings");
-  var count = document.getElementById("result-count");
-  var token = ++renderToken;
-  var origin = await resolveZip(state.zip);
-  if (token !== renderToken) return; // a newer render superseded this lookup
-
-  if (!grid.dataset.loaded) {
-    var sk = "";
-    for (var i = 0; i < 6; i++) sk += skeletonHTML();
-    grid.innerHTML = sk;
-  }
-
-  var rows;
-  try {
-    rows = await nearbyListings({
-      lat: origin ? origin.lat : null,
-      lng: origin ? origin.lng : null,
-      radius: state.radius, type: state.type, q: state.q,
-    });
-  } catch (e) {
-    if (token !== renderToken) return;
-    grid.innerHTML = '<div class="empty"><div class="em">⚠️</div>' +
-      "<p>Couldn't load listings. Check your connection and try again.</p></div>";
-    if (count) count.textContent = "";
-    return;
-  }
-  if (token !== renderToken) return; // a newer render superseded this one
-
-  lastRows = rows;
-  grid.dataset.loaded = "1";
-  fillZipDatalist(document.getElementById("zip-list")); // grow autocomplete with any newly-resolved ZIP
-  if (count) {
-    var zipDigits = state.zip.replace(/[^0-9]/g, "").length;
-    if (origin) {
-      count.textContent = rows.length + " result" + (rows.length === 1 ? "" : "s") +
-        " within " + state.radius + " mi of " + origin.city;
-    } else if (zipDigits === 5) {
-      count.textContent = "We couldn't find that ZIP — showing all recent listings.";
-    } else {
-      count.textContent = rows.length + " result" + (rows.length === 1 ? "" : "s");
-    }
-  }
   if (!rows.length) {
     grid.innerHTML = '<div class="empty"><div class="em">🔍</div>' +
       "<p>Nothing here yet. Try widening your radius or clearing filters — " +
@@ -157,23 +119,76 @@ async function render() {
   });
 }
 
+var renderToken = 0;
+async function render() {
+  var grid = document.getElementById("listings");
+  var count = document.getElementById("result-count");
+  var token = ++renderToken;
+
+  if (!grid.dataset.loaded) {
+    var sk = "";
+    for (var i = 0; i < 6; i++) sk += skeletonHTML();
+    grid.innerHTML = sk;
+  }
+
+  var origin = await resolveZip(state.zip);
+  if (token !== renderToken) return; // a newer render superseded this lookup
+
+  var rows;
+  try {
+    rows = await nearbyListings({
+      lat: origin ? origin.lat : null,
+      lng: origin ? origin.lng : null,
+      radius: state.radius, type: state.type, q: state.q,
+    });
+  } catch (e) {
+    if (token !== renderToken) return;
+    grid.innerHTML = '<div class="empty"><div class="em">⚠️</div>' +
+      "<p>Couldn't load listings. Check your connection and try again.</p></div>";
+    if (count) count.textContent = "";
+    return;
+  }
+  if (token !== renderToken) return; // a newer render superseded this one
+
+  rows = rows.filter(function (r) { return !deletedIds[r.id]; }); // don't resurrect optimistic deletes
+  lastRows = rows;
+  grid.dataset.loaded = "1";
+  fillZipDatalist(document.getElementById("zip-list")); // grow autocomplete with any newly-resolved ZIP
+  if (count) {
+    var zipDigits = state.zip.replace(/[^0-9]/g, "").length;
+    if (origin) {
+      count.textContent = rows.length + " result" + (rows.length === 1 ? "" : "s") +
+        " within " + state.radius + " mi of " + origin.city;
+    } else if (zipDigits === 5) {
+      count.textContent = "We couldn't find that ZIP — showing all recent listings.";
+    } else {
+      count.textContent = rows.length + " result" + (rows.length === 1 ? "" : "s");
+    }
+  }
+  paintRows(rows);
+}
+
 async function confirmDelete(id) {
   var ok = await confirmDialog({
     title: "Delete this listing?", body: "This can't be undone.",
     confirmLabel: "Delete", danger: true,
   });
   if (!ok) return;
+  var prevRows = lastRows;
+  deletedIds[id] = 1;
   var grid = document.getElementById("listings");
   var card = grid && grid.querySelector('.listing[data-id="' + id + '"]');
   if (card) card.remove();
   lastRows = lastRows.filter(function (r) { return r.id !== id; });
+  if (grid && !grid.querySelector(".listing")) paintRows(lastRows); // empty state, no refetch
   try {
     await deleteListing(id);
     toast("Listing deleted.", { type: "success" });
-    if (grid && !grid.querySelector(".listing")) render(); // show empty state
   } catch (e) {
+    delete deletedIds[id];
+    lastRows = prevRows;
+    paintRows(lastRows); // restore locally — a refetch would also fail offline
     toast((e && e.message) || "Couldn't delete — try again.", { type: "error" });
-    render(); // restore the card
   }
 }
 
@@ -201,11 +216,14 @@ function openRespond(id) {
 function readStateFromURL() {
   var p = new URLSearchParams(location.search);
   if (p.get("zip")) state.zip = p.get("zip");
-  if (p.get("radius")) state.radius = +p.get("radius") || state.radius;
+  var r = +p.get("radius");
+  if ([2, 5, 10, 25, 50].indexOf(r) !== -1) state.radius = r;
   if (p.get("type") === "sell" || p.get("type") === "buy") state.type = p.get("type");
   if (p.get("q")) state.q = p.get("q");
 }
 function writeStateToURL() {
+  // Rebuilt from scratch: any future feed query param must be added here or it
+  // will drop on the first filter change.
   var p = new URLSearchParams();
   if (state.zip) p.set("zip", state.zip);
   if (state.radius !== 25) p.set("radius", String(state.radius));
