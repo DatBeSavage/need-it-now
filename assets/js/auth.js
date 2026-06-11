@@ -3,6 +3,7 @@ import { signUp, signIn, signOut, getProfile, amIAdmin, myUnreadCount } from "./
 import { resolveZip } from "./config.js";
 import { wireZipInput } from "./zips.js";
 import { avatarHTML, initials } from "./avatar.js";
+import { initNotifications } from "./notify.js";
 export { toast } from "./ui.js";
 
 /* Resolve relative path depending on page depth (root vs /pages/). */
@@ -80,6 +81,15 @@ async function renderNavUser() {
   }
   if (JSON.stringify(cached) !== JSON.stringify(fresh)) paintNav(slot, fresh);
   writeNavCache(fresh);
+  if (fresh.loggedIn && profile) {
+    initNotifications({
+      me: profile.id,
+      onCountChange: function (n) {
+        var s = readNavCache();
+        if (s) { s.unread = n; writeNavCache(s); }
+      },
+    });
+  }
 }
 
 /* Guard: redirect to login if not signed in. Returns the profile or null. */

@@ -2,6 +2,7 @@
 import { getOrCreateConversation, getMessages, sendMessage, subscribeMessages, getProfile,
          markDealt, getMyRating, createRating } from "./api.js";
 import { toast, base } from "./auth.js";
+import { noteConversationOpened, noteConversationClosed } from "./notify.js";
 import { avatarHTML } from "./avatar.js";
 import { openReport } from "./report.js";
 
@@ -59,6 +60,7 @@ function close() {
   if (m) m.classList.remove("open");
   if (unsub) { unsub(); unsub = null; }
   seen = {};
+  noteConversationClosed();
 }
 
 function listen(log, convId) {
@@ -157,10 +159,12 @@ async function openPanel(opts, person, sub) {
     try {
       if (!conv) { conv = await getOrCreateConversation(opts.listing); listen(log, conv.id); renderDeal(m, conv); }
       await sendMessage(conv.id, text);
+      noteConversationOpened(conv.id);
     } catch (err) { toast((err && err.message) || "Couldn't send."); input.value = text; }
   };
 
   if (conv) {
+    noteConversationOpened(conv.id);
     try {
       var msgs = await getMessages(conv.id);
       if (msgs.length) { log.innerHTML = ""; msgs.forEach(function (x) { append(log, x); }); }

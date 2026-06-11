@@ -23,10 +23,13 @@ function rowHTML(c) {
   var who = (other && other.name) || (c.iAmOwner ? "Buyer" : "Seller");
   var title = c.listing ? c.listing.title : "Listing";
   var snippet = c.last_body || "No messages yet";
-  return '<button class="thread" data-id="' + c.id + '">' +
+  var myRead = c.iAmOwner ? c.owner_read_at : c.buyer_read_at;
+  var isUnread = !!c.last_body && new Date(c.last_message_at) > new Date(myRead || 0);
+  return '<button class="thread' + (isUnread ? " thread--unread" : "") + '" data-id="' + c.id + '">' +
     avatarHTML({ name: who, avatar_path: other && other.avatar_path }, "md") +
     '<span class="thread__body">' +
       '<span class="thread__top"><strong>' + esc(who) + "</strong>" +
+      (isUnread ? '<span class="thread__dot" aria-hidden="true"></span>' : "") +
       '<span class="muted thread__time">' + timeAgo(c.last_message_at) + "</span></span>" +
       '<span class="thread__listing muted">' + esc(title) + "</span>" +
       '<span class="thread__snippet">' + esc(snippet) + "</span>" +
@@ -52,6 +55,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   box.innerHTML = withMsgs.map(rowHTML).join("");
   var byId = {}; convs.forEach(function (c) { byId[c.id] = c; });
   box.querySelectorAll(".thread").forEach(function (btn) {
-    btn.addEventListener("click", function () { openChatForConversation(byId[btn.getAttribute("data-id")]); });
+    btn.addEventListener("click", function () {
+      btn.classList.remove("thread--unread");
+      var dot = btn.querySelector(".thread__dot");
+      if (dot) dot.remove();
+      openChatForConversation(byId[btn.getAttribute("data-id")]);
+    });
   });
 });

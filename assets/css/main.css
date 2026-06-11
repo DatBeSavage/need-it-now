@@ -386,6 +386,11 @@ button { font-family: inherit; }
 .thread__listing { font-size: var(--fs-xs); }
 .thread__snippet { font-size: var(--fs-sm); color: var(--ink-2);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thread--unread .thread__snippet { color: var(--ink); font-weight: 700; }
+.thread__dot {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--blue-600);
+  flex: none; display: inline-block; margin-left: .5ch;
+}
 
 /* ---- Avatars ---- */
 .avatar { display: inline-block; border-radius: 50%; object-fit: cover;
