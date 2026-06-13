@@ -337,6 +337,62 @@ export function subscribeMyMessages(onInsert) {
   return function () { supabase.removeChannel(channel); };
 }
 
+/* ---------------- Saves (favorites) + live feed ---------------- */
+export async function mySaves() {
+  const user = await getUser();
+  if (!user) return [];
+  const { data, error } = await supabase.from("saves").select("listing_id");
+  if (error) return []; // hearts are optional — never break page render
+  return (data || []).map(function (r) { return r.listing_id; });
+}
+
+export async function toggleSave(listingId, on) {
+  const user = await getUser();
+  if (!user) throw new Error("Please log in to save listings.");
+  if (on) {
+    const { error } = await supabase.from("saves").insert({ user_id: user.id, listing_id: listingId });
+    if (error && error.code !== "23505") throw error; // duplicate save = already done
+  } else {
+    const { error } = await supabase.from("saves")
+      .delete().eq("user_id", user.id).eq("listing_id", listingId);
+    if (error) throw error;
+  }
+}
+
+/* Saved listings, newest-saved first, shaped like feed rows. */
+export async function savedListings() {
+  const user = await getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from("saves")
+    .select("created_at, listing:listings(*, owner:profiles!listings_user_id_fkey(avatar_path, rating_avg, rating_count))")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || [])
+    .map(function (s) { return s.listing; })
+    .filter(function (l) { return l && !l.hidden; })
+    .map(function (l) {
+      return Object.assign({}, l, {
+        owner_avatar: l.owner ? l.owner.avatar_path : null,
+        owner_rating: l.owner ? l.owner.rating_avg : 0,
+        owner_rating_count: l.owner ? l.owner.rating_count : 0,
+        distance_mi: null,
+        owner: undefined,
+      });
+    });
+}
+
+/* Every listing INSERT (listings are world-readable). */
+export function subscribeListings(onInsert) {
+  const channel = supabase
+    .channel("listings:new")
+    .on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "listings" },
+      function (payload) { onInsert(payload.new); })
+    .subscribe();
+  return function () { supabase.removeChannel(channel); };
+}
+
 export async function getMyRating(conversationId) {
   const profile = await getProfile();
   if (!profile) return null;
