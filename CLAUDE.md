@@ -10,8 +10,8 @@ the same data. The browser talks to Supabase directly over HTTPS using the
 ## Where things live
 - **Landing page**: `index.html` in the project root.
 - **App pages** live in `pages/`: `register.html`, `login.html`, `reset.html`,
-  `post.html`, `feed.html`, `messages.html`, `profile.html`, `admin.html`,
-  `guidelines.html`. Each is standalone HTML.
+  `post.html`, `feed.html`, `listing.html`, `messages.html`, `profile.html`,
+  `admin.html`, `guidelines.html`. Each is standalone HTML.
 - **Styles** are in `assets/css/`:
   - `tokens.css` — design tokens in `:root` (blue primary, green money accent,
     neutrals, type + spacing scale, radius, shadows). Re-theme here.
@@ -34,6 +34,9 @@ the same data. The browser talks to Supabase directly over HTTPS using the
   - `reset.js` — password-reset page (request link / recovery update).
   - `feed.js` — feed page: location + radius filtering, type chips, search,
     respond modal. Distance + response counts come from the RPC rows.
+  - `listing.js` — listing detail page (`listing.html?id=`): responsive photo
+    gallery (desktop cover+thumbnails+lightbox, mobile swipe carousel), full
+    details, owner card, and actions (chat/report, or edit/delete if yours).
   - `post.js` — create-listing form on `post.html`.
 - **Database**: `supabase/schema.sql` (tables, RLS policies, triggers,
   `nearby_listings` geo function) and `supabase/seed.sql` (demo listings).
@@ -60,6 +63,9 @@ the same data. The browser talks to Supabase directly over HTTPS using the
   from a stored field (avatar_path, photos) MUST be HTML-escaped before going into markup.
 - **Listing photos**: up to 4 per listing in `listings.photos text[]`, stored in the
   public `listings` storage bucket under `<uid>/...`; first photo is the card cover.
+  The detail page (`listing.html`) shows all photos; `getListingDetail(id)`
+  returns the listing merged with owner avatar/rating/bio (null when hidden and
+  the viewer isn't the owner/admin).
 - To change the schema, edit `supabase/schema.sql` and re-run it in the Supabase
   SQL Editor (it is idempotent). To reseed, run `supabase/seed.sql`.
 
