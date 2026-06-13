@@ -199,6 +199,30 @@ button { font-family: inherit; }
 .backlink { display: inline-block; margin-bottom: var(--sp-3); color: var(--blue-600); font-weight: 700; font-size: var(--fs-sm); text-decoration: none; }
 .backlink:hover { text-decoration: underline; }
 
+/* ---- Listing detail page ---- */
+.detail { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,.9fr); gap: var(--sp-6); align-items: start; }
+.detail__info { display: flex; flex-direction: column; gap: var(--sp-3); }
+.detail__top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.detail__price { font-size: var(--fs-xl); }
+.detail__title { font-size: var(--fs-2xl); }
+.detail__meta { font-size: var(--fs-sm); }
+.detail__cat { align-self: flex-start; text-transform: capitalize; }
+.detail__desc { white-space: pre-wrap; color: var(--ink-2); }
+.detail__actions { display: flex; gap: var(--sp-3); margin-top: var(--sp-2); flex-wrap: wrap; }
+.owner-card { display: flex; gap: var(--sp-3); align-items: center; text-decoration: none; color: inherit;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3); }
+.owner-card:hover { border-color: var(--border-2); }
+.owner-card__bio { font-size: var(--fs-sm); margin-top: 2px; }
+.detail__gallery { position: sticky; top: calc(var(--nav-h) + var(--sp-3)); }
+.gallery__empty { aspect-ratio: 16/10; display: grid; place-items: center; font-size: 4rem;
+  background: var(--grad-media); border: 1px solid var(--border); border-radius: var(--r-md); }
+.gallery__main { width: 100%; aspect-ratio: 16/10; object-fit: cover; display: block;
+  border: 1px solid var(--border); border-radius: var(--r-md); }
+@media (max-width: 760px) {
+  .detail { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .detail__gallery { position: static; }
+}
+
 /* ---------- Feed layout ---------- */
 .feed-head { padding-block: var(--sp-5) var(--sp-4); }
 .feed-head h1 { font-size: var(--fs-xl); }
