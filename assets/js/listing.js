@@ -1,5 +1,5 @@
 // Need-It-Now — listing detail page.
-import { getListingDetail, getProfile, deleteListing, listingPhotoUrl } from "./api.js";
+import { getListingDetail, getProfile, deleteListing, listingPhotoUrl, mySaves, toggleSave } from "./api.js";
 import { resolveZip } from "./config.js";
 import { toast, go } from "./auth.js";
 import { confirmDialog } from "./ui.js";
@@ -169,6 +169,7 @@ function renderActions(mount, row, mine) {
   }
   var label = row.type === "sell" ? "I'm interested" : "I have one";
   mount.innerHTML = '<button class="btn btn--primary" data-respond>' + label + "</button>" +
+    (row.user_id ? '<button class="btn btn--ghost" data-save aria-pressed="false">♡ Save</button>' : "") +
     (row.user_id ? '<button class="btn btn--ghost" data-report>Report</button>' : "");
   mount.querySelector("[data-respond]").addEventListener("click", function () {
     if (!currentProfile) { go("pages/login.html?next=" + encodeURIComponent("/pages/listing.html?id=" + row.id)); return; }
@@ -179,6 +180,28 @@ function renderActions(mount, row, mine) {
     if (!currentProfile) { go("pages/login.html?next=" + encodeURIComponent("/pages/listing.html?id=" + row.id)); return; }
     openReport({ reportedUserId: row.user_id, reportedName: row.owner_name, listingId: row.id });
   });
+  var saveBtn = mount.querySelector("[data-save]");
+  if (saveBtn) {
+    var saved = false;
+    var setSaved = function (on) {
+      saved = on;
+      saveBtn.textContent = on ? "❤ Saved" : "♡ Save";
+      saveBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    };
+    if (currentProfile) {
+      mySaves().then(function (ids) { if (ids.indexOf(row.id) !== -1) setSaved(true); })
+        .catch(function () { /* hearts optional */ });
+    }
+    saveBtn.addEventListener("click", async function () {
+      if (!currentProfile) {
+        go("pages/login.html?next=" + encodeURIComponent("/pages/listing.html?id=" + row.id));
+        return;
+      }
+      setSaved(!saved);
+      try { await toggleSave(row.id, saved); }
+      catch (e) { setSaved(!saved); toast("Couldn't update saved listings.", { type: "error" }); }
+    });
+  }
 }
 
 function render(root, row) {

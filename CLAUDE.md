@@ -62,6 +62,10 @@ the same data. The browser talks to Supabase directly over HTTPS using the
   `mark_conversation_read()` (sets the caller's side); unread badges come from
   `my_unread_count()`. Any URL built
   from a stored field (avatar_path, photos) MUST be HTML-escaped before going into markup.
+- **Saves (favorites)**: `saves` table (user_id+listing_id, owner-only RLS);
+  hearts on feed cards + detail page, "❤ Saved" chip on the feed. `listings`
+  is in the realtime publication — new posts surface as the feed's
+  "Show N new" pill.
 - **Listing photos**: up to 4 per listing in `listings.photos text[]`, stored in the
   public `listings` storage bucket under `<uid>/...`; first photo is the card cover.
   The detail page (`listing.html`) shows all photos; `getListingDetail(id)`
