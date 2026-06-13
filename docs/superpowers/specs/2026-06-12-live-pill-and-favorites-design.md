@@ -46,11 +46,11 @@ unsubscribe function. Mirror of `subscribeMyMessages`.
   `aria-live="polite"` container.
 - Click → clear `pendingNew`, hide the pill, call `render()` (normal refetch;
   the RPC returns complete card shapes — no client-side row enrichment).
-- While `state.type === "saved"` the pill is hidden; if `pendingNew > 0` when
-  switching back to a non-saved chip, it reappears.
-- Filter changes (chips/search/zip/radius) reset `pendingNew` to 0 (the
-  buffer was evaluated against the old filters; the refetch they trigger
-  shows fresh data anyway).
+- While `state.type === "saved"`, incoming rows are ignored entirely (no
+  buffering — the pill has no meaning in the Saved view).
+- ANY filter change (chips including Saved, search, zip, radius) resets
+  `pendingNew` to 0 and hides the pill: the buffer was evaluated against the
+  old filters, and the refetch those changes trigger shows fresh data anyway.
 - Realtime failure: silent degrade — no pill, nothing breaks.
 
 ### Pill styling (`assets/css/main.css`)
