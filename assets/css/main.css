@@ -218,6 +218,31 @@ button { font-family: inherit; }
   background: var(--grad-media); border: 1px solid var(--border); border-radius: var(--r-md); }
 .gallery__main { width: 100%; aspect-ratio: 16/10; object-fit: cover; display: block;
   border: 1px solid var(--border); border-radius: var(--r-md); }
+.gallery__mainbtn { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.gallery__thumbs { display: flex; gap: var(--sp-2); margin-top: var(--sp-2); }
+.gallery__thumb { flex: 1; padding: 0; border: 2px solid transparent; border-radius: var(--r-sm);
+  overflow: hidden; cursor: pointer; background: none; aspect-ratio: 1; }
+.gallery__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery__thumb.is-active { border-color: var(--blue-600); }
+.gallery__track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+  border: 1px solid var(--border); border-radius: var(--r-md); scrollbar-width: none; }
+.gallery__track::-webkit-scrollbar { display: none; }
+.gallery__slide { flex: 0 0 100%; width: 100%; aspect-ratio: 16/10; object-fit: cover; scroll-snap-align: center; }
+.gallery__dots { display: flex; gap: 6px; justify-content: center; margin-top: var(--sp-2); }
+.gallery__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-2); }
+.gallery__dot.is-active { background: var(--blue-600); }
+.lightbox { position: fixed; inset: 0; z-index: 300; background: rgba(11,12,14,.9);
+  display: none; place-items: center; padding: var(--sp-4); }
+.lightbox.open { display: grid; }
+.lightbox__img { max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: var(--r-sm); }
+.lightbox__close { position: absolute; top: var(--sp-4); right: var(--sp-4); width: 42px; height: 42px;
+  border: 0; border-radius: var(--r-pill); background: rgba(255,255,255,.14); color: #fff; font-size: 20px; cursor: pointer; }
+.lightbox__close:hover { background: rgba(255,255,255,.26); }
+.lightbox__nav { position: absolute; top: 50%; transform: translateY(-50%); width: 46px; height: 46px;
+  border: 0; border-radius: var(--r-pill); background: rgba(255,255,255,.14); color: #fff; font-size: 26px; cursor: pointer; }
+.lightbox__nav:hover { background: rgba(255,255,255,.26); }
+.lightbox__prev { left: var(--sp-3); }
+.lightbox__next { right: var(--sp-3); }
 @media (max-width: 760px) {
   .detail { grid-template-columns: 1fr; gap: var(--sp-4); }
   .detail__gallery { position: static; }

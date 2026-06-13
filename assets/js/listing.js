@@ -42,12 +42,90 @@ function ownerCardHTML(row) {
     "</div></a>";
 }
 
-// Simple placeholder gallery — Task 4 replaces this with the responsive version.
+var MOBILE = window.matchMedia("(max-width: 760px)");
+var galleryCtx = null;
+
 function renderGallery(mount, row) {
-  var photos = (row.photos || []).map(listingPhotoUrl).filter(Boolean);
-  if (!photos.length) { mount.innerHTML = '<div class="gallery__empty">' + esc(row.emoji || "📦") + "</div>"; return; }
-  mount.innerHTML = '<img class="gallery__main" src="' + esc(photos[0]) + '" alt="" />';
+  galleryCtx = { mount: mount, photos: (row.photos || []).map(listingPhotoUrl).filter(Boolean), emoji: row.emoji || "📦" };
+  paintGallery();
 }
+
+function paintGallery() {
+  if (!galleryCtx) return;
+  var mount = galleryCtx.mount, photos = galleryCtx.photos;
+  if (!photos.length) { mount.innerHTML = '<div class="gallery__empty">' + esc(galleryCtx.emoji) + "</div>"; return; }
+  if (MOBILE.matches) paintCarousel(mount, photos);
+  else paintStrip(mount, photos);
+}
+
+function paintStrip(mount, photos) {
+  var current = 0;
+  var thumbs = photos.length > 1
+    ? '<div class="gallery__thumbs">' + photos.map(function (p, i) {
+        return '<button type="button" class="gallery__thumb' + (i === 0 ? " is-active" : "") + '" data-i="' + i + '">' +
+          '<img src="' + esc(p) + '" alt="" loading="lazy" /></button>';
+      }).join("") + "</div>"
+    : "";
+  mount.innerHTML =
+    '<button type="button" class="gallery__mainbtn" data-open>' +
+      '<img class="gallery__main" data-main src="' + esc(photos[0]) + '" alt="" /></button>' + thumbs;
+  var main = mount.querySelector("[data-main]");
+  mount.querySelectorAll(".gallery__thumb").forEach(function (t) {
+    t.addEventListener("click", function () {
+      current = +t.getAttribute("data-i");
+      main.src = photos[current];
+      mount.querySelectorAll(".gallery__thumb").forEach(function (x) { x.classList.remove("is-active"); });
+      t.classList.add("is-active");
+    });
+  });
+  mount.querySelector("[data-open]").addEventListener("click", function () { openLightbox(photos, current); });
+}
+
+function paintCarousel(mount, photos) {
+  mount.innerHTML =
+    '<div class="gallery__track" data-track>' +
+      photos.map(function (p) { return '<img class="gallery__slide" src="' + esc(p) + '" alt="" />'; }).join("") +
+    "</div>" +
+    (photos.length > 1
+      ? '<div class="gallery__dots">' + photos.map(function (_, i) {
+          return '<span class="gallery__dot' + (i === 0 ? " is-active" : "") + '"></span>'; }).join("") + "</div>"
+      : "");
+  if (photos.length < 2) return;
+  var track = mount.querySelector("[data-track]");
+  var dots = mount.querySelectorAll(".gallery__dot");
+  track.addEventListener("scroll", function () {
+    var i = Math.round(track.scrollLeft / track.clientWidth);
+    dots.forEach(function (d, di) { d.classList.toggle("is-active", di === i); });
+  }, { passive: true });
+}
+
+function openLightbox(photos, startIndex) {
+  var box = document.querySelector("[data-lightbox]");
+  var i = startIndex || 0;
+  function onKey(e) {
+    if (e.key === "Escape") close();
+    else if (e.key === "ArrowLeft" && photos.length > 1) { i = (i - 1 + photos.length) % photos.length; paint(); }
+    else if (e.key === "ArrowRight" && photos.length > 1) { i = (i + 1) % photos.length; paint(); }
+  }
+  function close() { document.removeEventListener("keydown", onKey); box.hidden = true; box.classList.remove("open"); box.innerHTML = ""; }
+  function paint() {
+    box.innerHTML =
+      '<button class="lightbox__close" data-close aria-label="Close">✕</button>' +
+      (photos.length > 1 ? '<button class="lightbox__nav lightbox__prev" data-prev aria-label="Previous">‹</button>' : "") +
+      '<img class="lightbox__img" src="' + esc(photos[i]) + '" alt="" />' +
+      (photos.length > 1 ? '<button class="lightbox__nav lightbox__next" data-next aria-label="Next">›</button>' : "");
+    box.querySelector("[data-close]").addEventListener("click", close);
+    var prev = box.querySelector("[data-prev]"), next = box.querySelector("[data-next]");
+    if (prev) prev.addEventListener("click", function (e) { e.stopPropagation(); i = (i - 1 + photos.length) % photos.length; paint(); });
+    if (next) next.addEventListener("click", function (e) { e.stopPropagation(); i = (i + 1) % photos.length; paint(); });
+  }
+  box.hidden = false; box.classList.add("open");
+  box.onclick = function (e) { if (e.target === box) close(); };
+  document.addEventListener("keydown", onKey);
+  paint();
+}
+
+MOBILE.addEventListener("change", paintGallery);
 
 function renderActions(mount, row, mine) {
   if (mine) {
