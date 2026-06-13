@@ -1,5 +1,5 @@
 // Need-It-Now — feed page: location + radius filtering, search, respond (Supabase).
-import { nearbyListings, getProfile, deleteListing, listingPhotoUrl, subscribeListings } from "./api.js";
+import { nearbyListings, getProfile, deleteListing, listingPhotoUrl, subscribeListings, mySaves, toggleSave } from "./api.js";
 import { resolveZip } from "./config.js";
 import { fillZipDatalist } from "./zips.js";
 import { toast, go } from "./auth.js";
@@ -54,6 +54,11 @@ function cardHTML(row) {
         (row.photos && row.photos.length
           ? '<img class="listing__photo" src="' + escapeHTML(listingPhotoUrl(row.photos[0])) + '" alt="" loading="lazy" />'
           : (row.emoji || "📦")) +
+        ((row.user_id && !isMine(row))
+          ? '<button type="button" class="save-heart' + (savedSet[row.id] ? " is-saved" : "") +
+            '" data-save="' + row.id + '" aria-pressed="' + (savedSet[row.id] ? "true" : "false") +
+            '" aria-label="Save listing">' + (savedSet[row.id] ? "❤" : "♡") + "</button>"
+          : "") +
       "</div>" +
       '<div class="listing__body">' +
         '<div class="listing__top">' + badge +
@@ -101,6 +106,7 @@ function skeletonHTML() {
 var deletedIds = {}; // optimistic deletes — never repaint these from an in-flight fetch
 
 var pendingNew = 0, lastOrigin = null; // live "Show N new" pill state
+var savedSet = {}; // listing_id -> 1 for the logged-in user's saves
 
 function milesBetween(a, b) {
   var R = 3958.8, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
@@ -164,6 +170,9 @@ function paintRows(rows) {
   });
   grid.querySelectorAll("[data-report]").forEach(function (btn) {
     btn.addEventListener("click", function () { reportListing(btn.getAttribute("data-report")); });
+  });
+  grid.querySelectorAll("[data-save]").forEach(function (btn) {
+    btn.addEventListener("click", function () { toggleHeart(btn); });
   });
 }
 
@@ -248,6 +257,32 @@ async function confirmDelete(id) {
     lastRows = prevRows;
     paintRows(lastRows); // restore locally — a refetch would also fail offline
     toast((e && e.message) || "Couldn't delete — try again.", { type: "error" });
+  }
+}
+
+var SAVED_EMPTY = '<div class="empty"><div class="em">🤍</div>' +
+  "<p>Nothing saved yet — tap the ♡ on a listing to keep it here.</p></div>";
+
+async function toggleHeart(btn) {
+  var id = btn.getAttribute("data-save");
+  if (!currentProfile) { go("pages/login.html?next=/pages/feed.html"); return; }
+  var on = !savedSet[id];
+  if (on) savedSet[id] = 1; else delete savedSet[id];
+  btn.classList.toggle("is-saved", on);
+  btn.textContent = on ? "❤" : "♡";
+  btn.setAttribute("aria-pressed", on ? "true" : "false");
+  if (!on && state.type === "saved") {
+    var card = btn.closest(".listing");
+    if (card) card.remove();
+    lastRows = lastRows.filter(function (r) { return r.id !== id; });
+    var grid = document.getElementById("listings");
+    if (grid && !grid.querySelector(".listing")) paintRows(lastRows, SAVED_EMPTY);
+  }
+  try { await toggleSave(id, on); }
+  catch (e) {
+    if (on) delete savedSet[id]; else savedSet[id] = 1;
+    toast("Couldn't update saved listings.", { type: "error" });
+    render(); // repaint the truth
   }
 }
 
@@ -352,6 +387,9 @@ document.addEventListener("DOMContentLoaded", async function () {
   if (!document.getElementById("listings")) return;
   fillZipDatalist(document.getElementById("zip-list"));
   try { currentProfile = await getProfile(); } catch (e) { currentProfile = null; }
+  if (currentProfile) {
+    try { (await mySaves()).forEach(function (id) { savedSet[id] = 1; }); } catch (e) { /* hearts optional */ }
+  }
   wireControls();
   render();
   subscribeListings(function (row) {
