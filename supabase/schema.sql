@@ -703,3 +703,32 @@ begin
     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'listings'
   ) then execute 'alter publication supabase_realtime add table public.listings'; end if;
 end $$;
+
+-- ============================================================
+-- Soft per-side conversation delete: hide a thread from one party's inbox
+-- without touching the other side. Same locked-columns model as the read
+-- markers — only the RPC writes these. A new message (which bumps
+-- last_message_at past my marker) makes the thread reappear for me.
+-- ============================================================
+alter table public.conversations add column if not exists buyer_deleted_at timestamptz;
+alter table public.conversations add column if not exists owner_deleted_at timestamptz;
+
+-- Sets ONLY the caller's deleted marker (and read marker, so a dismissed
+-- thread also stops counting toward the unread badge).
+create or replace function public.delete_conversation(conv_id uuid)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare c public.conversations%rowtype;
+begin
+  select * into c from public.conversations where id = conv_id;
+  if not found then raise exception 'Conversation not found'; end if;
+  if auth.uid() = c.buyer_id then
+    update public.conversations set buyer_deleted_at = now(), buyer_read_at = now() where id = conv_id;
+  elsif auth.uid() = c.owner_id then
+    update public.conversations set owner_deleted_at = now(), owner_read_at = now() where id = conv_id;
+  else
+    raise exception 'Not authorized';
+  end if;
+end; $$;
+revoke execute on function public.delete_conversation(uuid) from public, anon;
+grant  execute on function public.delete_conversation(uuid) to authenticated;
