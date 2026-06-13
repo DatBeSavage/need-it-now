@@ -96,6 +96,30 @@ export async function getListing(id) {
   return data;
 }
 
+/* Listing + merged owner fields, shaped like a nearby_listings feed row so it
+   works with openChatForListing / avatarHTML / starsHTML. Returns null when the
+   listing is missing, or hidden and the viewer is neither owner nor admin. */
+export async function getListingDetail(id) {
+  const listing = await getListing(id);
+  if (!listing) return null;
+  if (listing.hidden) {
+    const me = await getProfile();
+    let admin = false;
+    try { admin = await amIAdmin(); } catch (e) { admin = false; }
+    if (!(me && me.id === listing.user_id) && !admin) return null;
+  }
+  let owner = null;
+  if (listing.user_id) {
+    try { owner = await getProfileById(listing.user_id); } catch (e) { owner = null; }
+  }
+  return Object.assign({}, listing, {
+    owner_avatar: owner ? owner.avatar_path : null,
+    owner_rating: owner ? owner.rating_avg : 0,
+    owner_rating_count: owner ? owner.rating_count : 0,
+    owner_bio: owner ? owner.bio : "",
+  });
+}
+
 // Public URL for a stored listing photo path (or null).
 export function listingPhotoUrl(path) {
   return path ? SUPABASE_URL + "/storage/v1/object/public/listings/" + path : null;
