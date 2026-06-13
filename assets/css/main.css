@@ -346,6 +346,22 @@ button { font-family: inherit; }
 @keyframes shimmer { to { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .skel::after { animation: none; } }
 
+/* Live "Show N new listings" pill */
+.fresh-pill-holder {
+  position: sticky; top: calc(var(--nav-h) + var(--sp-3)); z-index: 30;
+  height: 0; display: flex; justify-content: center; overflow: visible;
+}
+.fresh-pill {
+  border: 1px solid var(--border-2); background: var(--surface-solid); color: var(--blue-400);
+  font: inherit; font-weight: 800; font-size: var(--fs-sm); padding: .55rem 1.1rem;
+  border-radius: var(--r-pill); cursor: pointer;
+  box-shadow: var(--shadow-md), var(--glow-blue);
+  transition: transform .2s, opacity .2s;
+}
+.fresh-pill:hover { transform: translateY(-1px); }
+.fresh-pill[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .fresh-pill { transition: none; } }
+
 /* Banner (logged-out / flash) */
 .banner {
   display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;

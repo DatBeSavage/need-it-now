@@ -1,5 +1,5 @@
 // Need-It-Now — feed page: location + radius filtering, search, respond (Supabase).
-import { nearbyListings, getProfile, deleteListing, listingPhotoUrl } from "./api.js";
+import { nearbyListings, getProfile, deleteListing, listingPhotoUrl, subscribeListings } from "./api.js";
 import { resolveZip } from "./config.js";
 import { fillZipDatalist } from "./zips.js";
 import { toast, go } from "./auth.js";
@@ -100,6 +100,53 @@ function skeletonHTML() {
 
 var deletedIds = {}; // optimistic deletes — never repaint these from an in-flight fetch
 
+var pendingNew = 0, lastOrigin = null; // live "Show N new" pill state
+
+function milesBetween(a, b) {
+  var R = 3958.8, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+  var s = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.asin(Math.sqrt(s));
+}
+
+/* Would this just-posted row appear under the CURRENT filters? */
+function matchesFilters(row) {
+  if (state.type === "saved") return false; // pill is meaningless in the Saved view
+  if (currentProfile && row.user_id === currentProfile.id) return false; // own post
+  if ((state.type === "sell" || state.type === "buy") && row.type !== state.type) return false;
+  if (state.q) {
+    var q = state.q.toLowerCase();
+    if ((row.title || "").toLowerCase().indexOf(q) === -1 &&
+        (row.description || "").toLowerCase().indexOf(q) === -1) return false;
+  }
+  // Null coords on either side count as in-radius (same as the RPC's semantics).
+  if (lastOrigin && row.lat != null && row.lng != null &&
+      milesBetween(lastOrigin, row) > state.radius) return false;
+  return true;
+}
+
+function freshPill() {
+  var pill = document.getElementById("fresh-pill");
+  if (!pill) {
+    var holder = document.createElement("div");
+    holder.className = "fresh-pill-holder";
+    holder.setAttribute("aria-live", "polite");
+    holder.innerHTML = '<button id="fresh-pill" class="fresh-pill" type="button" hidden></button>';
+    var controls = document.getElementById("controls");
+    controls.parentNode.insertBefore(holder, controls.nextSibling);
+    pill = holder.querySelector("#fresh-pill");
+    pill.addEventListener("click", function () { clearPill(); render(); });
+  }
+  return pill;
+}
+function updatePill() {
+  var pill = freshPill();
+  pill.textContent = "Show " + pendingNew + " new listing" + (pendingNew === 1 ? "" : "s");
+  pill.hidden = pendingNew === 0;
+}
+function clearPill() { pendingNew = 0; updatePill(); }
+
 function paintRows(rows) {
   var grid = document.getElementById("listings");
   if (!rows.length) {
@@ -141,6 +188,7 @@ async function render() {
   }
 
   var origin = await resolveZip(state.zip);
+  lastOrigin = origin;
   if (token !== renderToken) return; // a newer render superseded this lookup
 
   var rows;
@@ -213,7 +261,7 @@ function reportListing(id) {
 var renderTimer;
 function scheduleRender() {
   clearTimeout(renderTimer);
-  renderTimer = setTimeout(function () { writeStateToURL(); render(); }, 250);
+  renderTimer = setTimeout(function () { clearPill(); writeStateToURL(); render(); }, 250);
 }
 
 /* ---- Respond modal ---- */
@@ -278,6 +326,7 @@ function wireControls() {
       document.querySelectorAll(".chip").forEach(function (c) { c.classList.remove("active"); });
       chip.classList.add("active");
       state.type = chip.getAttribute("data-filter");
+      clearPill();
       writeStateToURL();
       render();
     });
@@ -305,6 +354,12 @@ document.addEventListener("DOMContentLoaded", async function () {
   try { currentProfile = await getProfile(); } catch (e) { currentProfile = null; }
   wireControls();
   render();
+  subscribeListings(function (row) {
+    if (!row || deletedIds[row.id]) return;
+    if (!matchesFilters(row)) return;
+    pendingNew++;
+    updatePill();
+  });
   if (new URLSearchParams(location.search).get("posted")) {
     var b = document.getElementById("flash");
     if (b) b.style.display = "flex";
