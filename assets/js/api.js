@@ -302,6 +302,9 @@ export async function myConversations() {
   if (error) throw error;
   return (data || []).map(function (c) {
     return Object.assign({}, c, { iAmOwner: c.owner_id === profile.id, me: profile });
+  }).filter(function (c) {
+    var myDel = c.iAmOwner ? c.owner_deleted_at : c.buyer_deleted_at;
+    return !myDel || new Date(c.last_message_at) > new Date(myDel);
   });
 }
 
@@ -317,6 +320,11 @@ export async function markDealt(conversationId) {
 /* ---------------- Unread / notifications ---------------- */
 export async function markConversationRead(conversationId) {
   const { error } = await supabase.rpc("mark_conversation_read", { conv_id: conversationId });
+  if (error) throw error;
+}
+
+export async function deleteConversation(conversationId) {
+  const { error } = await supabase.rpc("delete_conversation", { conv_id: conversationId });
   if (error) throw error;
 }
 
