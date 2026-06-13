@@ -59,7 +59,8 @@ function cardHTML(row) {
         '<div class="listing__top">' + badge +
           '<span class="price listing__price">' + priceLabel + "</span>" +
         "</div>" +
-        '<h3 class="listing__title">' + escapeHTML(row.title) + "</h3>" +
+        '<h3 class="listing__title"><a class="listing__title-link" href="listing.html?id=' +
+          encodeURIComponent(row.id) + '">' + escapeHTML(row.title) + "</a></h3>" +
         '<p class="listing__desc">' + escapeHTML(row.description) + "</p>" +
         '<div class="listing__meta">' +
           "<span>" +

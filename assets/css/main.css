@@ -308,6 +308,13 @@ button { font-family: inherit; }
   border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-sm);
   transition: transform .12s, box-shadow .15s, border-color .15s;
 }
+.listing { position: relative; cursor: pointer; }
+.listing__title-link { color: inherit; text-decoration: none; }
+.listing__title-link::after { content: ""; position: absolute; inset: 0; z-index: 0; }
+.listing__title-link:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+.listing:hover .listing__title { color: var(--blue-700); }
+/* Keep the in-card controls clickable above the stretched overlay */
+.listing__foot, .listing .owner { position: relative; z-index: 1; cursor: auto; }
 .listing:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--border-2); }
 .listing__media {
   aspect-ratio: 16/10; display: grid; place-items: center; font-size: 2.8rem;
