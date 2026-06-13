@@ -13,8 +13,9 @@ the same data. The browser talks to Supabase directly over HTTPS using the
   `post.html`, `feed.html`, `listing.html`, `messages.html`, `profile.html`,
   `admin.html`, `guidelines.html`. Each is standalone HTML.
 - **Styles** are in `assets/css/`:
-  - `tokens.css` — design tokens in `:root` (blue primary, green money accent,
-    neutrals, type + spacing scale, radius, shadows). Re-theme here.
+  - `tokens.css` — design tokens in `:root` ("Frosted Glass Deep" dark theme:
+    near-black bg + neon blue/green haze, frosted translucent surfaces, glow
+    accents; blue primary, green money accent). Re-theme here.
   - `main.css` — layout & components (nav, buttons, forms, cards, feed, modal).
 - **Scripts** are in `assets/js/` and load as ES modules (`<script type="module">`):
   - `config.js` — Supabase URL + publishable key, the demo ZIP→lat/lng table,

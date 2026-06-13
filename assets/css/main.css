@@ -1,7 +1,7 @@
 /* Need-It-Now — layout & components */
 *, *::before, *::after { box-sizing: border-box; }
 * { margin: 0; }
-html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; background: var(--bg); }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; background: var(--bg); color-scheme: dark; }
 
 /* Smooth cross-page navigation so the chrome appears to stay put instead of
    flashing white on each load. Progressive — browsers without support just
@@ -164,7 +164,7 @@ button { font-family: inherit; }
 }
 .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-600); box-shadow: 0 0 0 4px var(--green-050); }
 .hero h1 { font-size: var(--fs-3xl); margin: var(--sp-4) 0; }
-.hero h1 .hl { color: var(--green-600); }
+.hero h1 .hl { color: var(--green-400); text-shadow: var(--glow-green); }
 .hero p.lead { font-size: var(--fs-md); color: var(--ink-2); max-width: 52ch; }
 .hero__cta { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-5); }
 .hero__stats { display: flex; gap: var(--sp-6); margin-top: var(--sp-6); }
