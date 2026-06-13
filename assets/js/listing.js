@@ -58,16 +58,31 @@ function paintGallery() {
   else paintStrip(mount, photos);
 }
 
+function wirePhotoFallback(mount) {
+  mount.querySelectorAll("img").forEach(function (img) {
+    img.addEventListener("error", function () {
+      var thumb = img.closest(".gallery__thumb");
+      if (thumb) { thumb.hidden = true; return; }
+      if (img.classList.contains("gallery__slide")) { img.hidden = true; return; }
+      var btn = img.closest(".gallery__mainbtn");
+      var d = document.createElement("div");
+      d.className = "gallery__empty";
+      d.textContent = galleryCtx ? galleryCtx.emoji : "📦";
+      (btn || img).replaceWith(d);
+    });
+  });
+}
+
 function paintStrip(mount, photos) {
   var current = 0;
   var thumbs = photos.length > 1
     ? '<div class="gallery__thumbs">' + photos.map(function (p, i) {
-        return '<button type="button" class="gallery__thumb' + (i === 0 ? " is-active" : "") + '" data-i="' + i + '">' +
+        return '<button type="button" class="gallery__thumb' + (i === 0 ? " is-active" : "") + '" data-i="' + i + '" aria-label="Photo ' + (i + 1) + '">' +
           '<img src="' + esc(p) + '" alt="" loading="lazy" /></button>';
       }).join("") + "</div>"
     : "";
   mount.innerHTML =
-    '<button type="button" class="gallery__mainbtn" data-open>' +
+    '<button type="button" class="gallery__mainbtn" data-open aria-label="View photo full screen">' +
       '<img class="gallery__main" data-main src="' + esc(photos[0]) + '" alt="" /></button>' + thumbs;
   var main = mount.querySelector("[data-main]");
   mount.querySelectorAll(".gallery__thumb").forEach(function (t) {
@@ -79,35 +94,38 @@ function paintStrip(mount, photos) {
     });
   });
   mount.querySelector("[data-open]").addEventListener("click", function () { openLightbox(photos, current); });
+  wirePhotoFallback(mount);
 }
 
 function paintCarousel(mount, photos) {
   mount.innerHTML =
     '<div class="gallery__track" data-track>' +
-      photos.map(function (p) { return '<img class="gallery__slide" src="' + esc(p) + '" alt="" />'; }).join("") +
+      photos.map(function (p) { return '<img class="gallery__slide" src="' + esc(p) + '" alt="" loading="lazy" />'; }).join("") +
     "</div>" +
     (photos.length > 1
       ? '<div class="gallery__dots">' + photos.map(function (_, i) {
           return '<span class="gallery__dot' + (i === 0 ? " is-active" : "") + '"></span>'; }).join("") + "</div>"
       : "");
-  if (photos.length < 2) return;
+  if (photos.length < 2) { wirePhotoFallback(mount); return; }
   var track = mount.querySelector("[data-track]");
   var dots = mount.querySelectorAll(".gallery__dot");
   track.addEventListener("scroll", function () {
-    var i = Math.round(track.scrollLeft / track.clientWidth);
+    var i = Math.max(0, Math.min(photos.length - 1, Math.round(track.scrollLeft / track.clientWidth)));
     dots.forEach(function (d, di) { d.classList.toggle("is-active", di === i); });
   }, { passive: true });
+  wirePhotoFallback(mount);
 }
 
 function openLightbox(photos, startIndex) {
+  var opener = document.activeElement;
   var box = document.querySelector("[data-lightbox]");
   var i = startIndex || 0;
   function onKey(e) {
-    if (e.key === "Escape") close();
+    if (e.key === "Escape") { if (document.querySelector(".modal-back.open")) return; close(); }
     else if (e.key === "ArrowLeft" && photos.length > 1) { i = (i - 1 + photos.length) % photos.length; paint(); }
     else if (e.key === "ArrowRight" && photos.length > 1) { i = (i + 1) % photos.length; paint(); }
   }
-  function close() { document.removeEventListener("keydown", onKey); box.hidden = true; box.classList.remove("open"); box.innerHTML = ""; }
+  function close() { document.removeEventListener("keydown", onKey); box.hidden = true; box.classList.remove("open"); box.innerHTML = ""; if (opener && opener.focus) opener.focus(); }
   function paint() {
     box.innerHTML =
       '<button class="lightbox__close" data-close aria-label="Close">✕</button>' +
@@ -118,9 +136,12 @@ function openLightbox(photos, startIndex) {
     var prev = box.querySelector("[data-prev]"), next = box.querySelector("[data-next]");
     if (prev) prev.addEventListener("click", function (e) { e.stopPropagation(); i = (i - 1 + photos.length) % photos.length; paint(); });
     if (next) next.addEventListener("click", function (e) { e.stopPropagation(); i = (i + 1) % photos.length; paint(); });
+    var im = box.querySelector(".lightbox__img");
+    im.addEventListener("error", function () { im.style.visibility = "hidden"; });
+    var cb = box.querySelector("[data-close]"); if (cb) cb.focus();
   }
   box.hidden = false; box.classList.add("open");
-  box.onclick = function (e) { if (e.target === box) close(); };
+  box.onclick = function (e) { if (e.target === box && e.detail <= 1) close(); };
   document.addEventListener("keydown", onKey);
   paint();
 }
