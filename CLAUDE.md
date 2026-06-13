@@ -31,7 +31,8 @@ the same data. The browser talks to Supabase directly over HTTPS using the
     "(n)" tab-title prefix, toast with View action; chat.js reports open/close
     so the open conversation stays marked read.
   - `chat.js` / `messages.js` — realtime chat panel and the Messages inbox
-    (unread rows bold + dot, read markers via `mark_conversation_read`).
+    (unread rows bold + dot, read markers via `mark_conversation_read`, date separators,
+    message grouping, and per-row delete (⋮)).
   - `reset.js` — password-reset page (request link / recovery update).
   - `feed.js` — feed page: location + radius filtering, type chips, search,
     respond modal. Distance + response counts come from the RPC rows.
@@ -60,7 +61,9 @@ the same data. The browser talks to Supabase directly over HTTPS using the
   both parties must confirm before `dealt_at` is set, which gates ratings);
   `conversations.buyer_read_at`/`owner_read_at` are written only by
   `mark_conversation_read()` (sets the caller's side); unread badges come from
-  `my_unread_count()`. Any URL built
+  `my_unread_count()`. Soft per-side conversation delete is written only by `delete_conversation()`
+  (sets the caller's `*_deleted_at` + `*_read_at`); the inbox hides a thread
+  until a newer message arrives. Any URL built
   from a stored field (avatar_path, photos) MUST be HTML-escaped before going into markup.
 - **Saves (favorites)**: `saves` table (user_id+listing_id, owner-only RLS);
   hearts on feed cards + detail page, "❤ Saved" chip on the feed. `listings`
