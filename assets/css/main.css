@@ -16,8 +16,8 @@ body {
   font-family: var(--font-body);
   color: var(--ink);
   background:
-    radial-gradient(55% 45% at 100% 0%, rgba(22,163,74,.06), transparent 60%),
-    radial-gradient(60% 50% at 0% 0%, rgba(24,119,242,.07), transparent 60%),
+    radial-gradient(circle at 22% 0%, rgba(24,119,242,.25), transparent 52%),
+    radial-gradient(circle at 92% 100%, rgba(22,163,74,.20), transparent 52%),
     var(--bg);
   background-attachment: fixed;
   line-height: 1.6;
@@ -41,7 +41,7 @@ button { font-family: inherit; }
 /* ---------- Nav ---------- */
 .nav {
   position: sticky; top: 0; z-index: 50;
-  background: rgba(255,255,255,.82);
+  background: rgba(13,17,26,.70);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
   backdrop-filter: saturate(180%) blur(14px);
   border-bottom: 1px solid var(--border);
@@ -61,10 +61,10 @@ button { font-family: inherit; }
   width: 30px; height: 30px; border-radius: 9px; flex: none;
   display: grid; place-items: center; color: #fff; font-size: 16px;
   background: linear-gradient(135deg, var(--blue-600), var(--green-600));
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--glow-blue);
 }
-.brand b { color: var(--blue-600); }
-.brand b + b { color: var(--green-600); }
+.brand b { color: var(--blue-400); }
+.brand b + b { color: var(--green-400); }
 
 .nav__links { display: flex; align-items: center; gap: var(--sp-1); margin-left: auto; }
 .nav__links a {
@@ -72,7 +72,7 @@ button { font-family: inherit; }
   padding: .5rem .8rem; border-radius: var(--r-sm); transition: background .15s, color .15s;
 }
 .nav__links a:hover { background: var(--surface-2); color: var(--ink); }
-.nav__links a.active { color: var(--blue-600); background: var(--blue-050); }
+.nav__links a.active { color: var(--blue-400); background: var(--blue-050); }
 .nav__user { display: flex; align-items: center; gap: var(--sp-3); margin-left: auto; }
 .nav__avatar {
   width: 34px; height: 34px; border-radius: var(--r-pill); flex: none;
@@ -149,8 +149,8 @@ button { font-family: inherit; }
 .hero::before {
   content: ""; position: absolute; inset: 0; z-index: -1;
   background:
-    radial-gradient(60% 80% at 85% -10%, rgba(22,163,74,.16), transparent 60%),
-    radial-gradient(70% 90% at 5% 0%, rgba(24,119,242,.18), transparent 55%),
+    radial-gradient(60% 80% at 85% -10%, rgba(22,163,74,.30), transparent 60%),
+    radial-gradient(70% 90% at 5% 0%, rgba(24,119,242,.32), transparent 55%),
     var(--bg);
 }
 .hero__inner { display: grid; grid-template-columns: 1.1fr .9fr; gap: var(--sp-7); align-items: center; padding-block: var(--sp-8); }
@@ -256,7 +256,7 @@ button { font-family: inherit; }
 /* Feed filter toolbar — compact, glassy, sticky */
 .controls {
   position: sticky; top: calc(var(--nav-h) + var(--sp-2)); z-index: 20;
-  background: rgba(255,255,255,.85);
+  background: rgba(17,22,31,.75);
   -webkit-backdrop-filter: saturate(180%) blur(12px);
   backdrop-filter: saturate(180%) blur(12px);
   border: 1px solid var(--border); border-radius: var(--r-lg);
@@ -598,14 +598,14 @@ button { font-family: inherit; }
 
   /* Solid top bar on mobile: backdrop-filter would make .nav the containing
      block for the fixed bottom tab bar below, pinning it to the wrong place. */
-  .nav { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .nav { background: rgba(13,17,26,.92); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .nav__inner { gap: var(--sp-2); padding-inline: var(--sp-3); }
 
   .nav__links {
     position: fixed; left: 0; right: 0; bottom: 0; margin: 0; z-index: 60;
     height: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: rgba(255,255,255,.92);
+    background: rgba(13,17,26,.88);
     -webkit-backdrop-filter: saturate(180%) blur(16px);
     backdrop-filter: saturate(180%) blur(16px);
     border-top: 1px solid var(--border);
