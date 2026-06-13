@@ -492,6 +492,34 @@ button { font-family: inherit; }
   flex: none; display: inline-block; margin-left: .5ch; margin-right: auto; align-self: center;
 }
 
+/* Inbox rows: ⋮ menu + dark polish */
+.thread-row { position: relative; }
+.thread-row .thread { width: 100%; transition: border-color .15s, box-shadow .15s, transform .08s; }
+.thread-row .thread:hover { border-color: var(--border-2); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.thread-row.is-unread .thread { border-color: rgba(95,176,255,.35); box-shadow: var(--glow-blue); }
+.thread__top { padding-right: 22px; } /* room for the ⋮ button */
+.thread-menu {
+  position: absolute; top: 10px; right: 10px; width: 30px; height: 30px;
+  border: 0; border-radius: var(--r-pill); background: transparent; color: var(--muted);
+  font-size: 18px; line-height: 1; cursor: pointer; opacity: 0;
+  transition: opacity .15s, background .15s, color .15s; z-index: 2;
+}
+.thread-row:hover .thread-menu, .thread-menu:focus-visible { opacity: 1; }
+.thread-menu:hover { background: var(--surface-3); color: var(--ink); }
+@media (pointer: coarse) { .thread-menu { opacity: 1; } }
+.thread-pop {
+  position: absolute; top: 40px; right: 10px; z-index: 5;
+  background: var(--surface-solid); border: 1px solid var(--border-2);
+  border-radius: var(--r-sm); box-shadow: var(--shadow-lg); overflow: hidden;
+}
+.thread-pop[hidden] { display: none; }
+.thread-pop__item {
+  display: block; width: 100%; text-align: left; border: 0; background: none;
+  color: var(--danger); font: inherit; font-weight: 700; padding: .55rem .95rem;
+  cursor: pointer; white-space: nowrap;
+}
+.thread-pop__item:hover { background: var(--surface-3); }
+
 /* ---- Avatars ---- */
 .avatar { display: inline-block; border-radius: 50%; object-fit: cover;
   background: var(--blue-600); color: #fff; font-weight: 700; text-align: center;
