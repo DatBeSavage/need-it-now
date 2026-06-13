@@ -139,6 +139,7 @@ function showRateForm(m, conv, otherId) {
 // opts: { conv } for an existing thread, or { listing } for a lazy new thread.
 async function openPanel(opts, person, sub) {
   lastOpener = document.activeElement;
+  if (unsub) { unsub(); unsub = null; } // tear down any prior conversation's realtime sub before reusing the singleton panel
   var profile = await getProfile();
   if (!profile) { location.href = base() + "pages/login.html"; return; }
   meId = profile.id; seen = {};
