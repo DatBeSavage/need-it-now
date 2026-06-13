@@ -119,6 +119,7 @@ function milesBetween(a, b) {
 /* Would this just-posted row appear under the CURRENT filters? */
 function matchesFilters(row) {
   if (state.type === "saved") return false; // pill is meaningless in the Saved view
+  if (row.hidden) return false; // parity with the RPC's "not hidden" filter
   if (currentProfile && row.user_id === currentProfile.id) return false; // own post
   if ((state.type === "sell" || state.type === "buy") && row.type !== state.type) return false;
   if (state.q) {
@@ -198,6 +199,10 @@ async function render() {
   }
 
   if (state.type === "saved") {
+    if (!currentProfile) {
+      go("pages/login.html?next=" + encodeURIComponent("/pages/feed.html?type=saved"));
+      return;
+    }
     var sRows;
     try { sRows = await savedListings(); }
     catch (e) {
@@ -218,8 +223,8 @@ async function render() {
   }
 
   var origin = await resolveZip(state.zip);
-  lastOrigin = origin;
   if (token !== renderToken) return; // a newer render superseded this lookup
+  lastOrigin = origin;
 
   var rows;
   try {
@@ -288,6 +293,7 @@ async function toggleHeart(btn) {
   var id = btn.getAttribute("data-save");
   if (!currentProfile) { go("pages/login.html?next=/pages/feed.html"); return; }
   var on = !savedSet[id];
+  var prevRows = lastRows;
   if (on) savedSet[id] = 1; else delete savedSet[id];
   btn.classList.toggle("is-saved", on);
   btn.textContent = on ? "❤" : "♡";
@@ -301,9 +307,17 @@ async function toggleHeart(btn) {
   }
   try { await toggleSave(id, on); }
   catch (e) {
+    // Roll back locally — a refetch would also fail offline (same rule as confirmDelete).
     if (on) delete savedSet[id]; else savedSet[id] = 1;
+    if (!on && state.type === "saved") {
+      lastRows = prevRows;
+      paintRows(lastRows, SAVED_EMPTY);
+    } else {
+      btn.classList.toggle("is-saved", !on);
+      btn.textContent = !on ? "❤" : "♡";
+      btn.setAttribute("aria-pressed", !on ? "true" : "false");
+    }
     toast("Couldn't update saved listings.", { type: "error" });
-    render(); // repaint the truth
   }
 }
 
