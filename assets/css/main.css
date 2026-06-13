@@ -201,7 +201,7 @@ button { font-family: inherit; }
 
 /* ---- Listing detail page ---- */
 .detail { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,.9fr); gap: var(--sp-6); align-items: start; }
-.detail__info { display: flex; flex-direction: column; gap: var(--sp-3); }
+.detail__info { display: flex; flex-direction: column; gap: var(--sp-3); overflow-wrap: anywhere; }
 .detail__top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
 .detail__price { font-size: var(--fs-xl); }
 .detail__title { font-size: var(--fs-2xl); }

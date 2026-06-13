@@ -58,7 +58,12 @@ function renderActions(mount, row, mine) {
       var ok = await confirmDialog({ title: "Delete this listing?", body: "This can't be undone.",
         confirmLabel: "Delete", danger: true });
       if (!ok) return;
-      try { await deleteListing(row.id); toast("Listing deleted.", { type: "success" }); go("pages/feed.html"); }
+      try {
+        await deleteListing(row.id);
+        try { sessionStorage.removeItem("nin_feed_v1"); } catch (e2) { /* blocked */ }
+        toast("Listing deleted.", { type: "success" });
+        setTimeout(function () { go("pages/feed.html"); }, 900);
+      }
       catch (e) { toast((e && e.message) || "Couldn't delete — try again.", { type: "error" }); }
     });
     return;
@@ -66,9 +71,13 @@ function renderActions(mount, row, mine) {
   var label = row.type === "sell" ? "I'm interested" : "I have one";
   mount.innerHTML = '<button class="btn btn--primary" data-respond>' + label + "</button>" +
     (row.user_id ? '<button class="btn btn--ghost" data-report>Report</button>' : "");
-  mount.querySelector("[data-respond]").addEventListener("click", function () { openChatForListing(row); });
+  mount.querySelector("[data-respond]").addEventListener("click", function () {
+    if (!currentProfile) { go("pages/login.html?next=" + encodeURIComponent("/pages/listing.html?id=" + row.id)); return; }
+    openChatForListing(row);
+  });
   var rep = mount.querySelector("[data-report]");
   if (rep) rep.addEventListener("click", function () {
+    if (!currentProfile) { go("pages/login.html?next=" + encodeURIComponent("/pages/listing.html?id=" + row.id)); return; }
     openReport({ reportedUserId: row.user_id, reportedName: row.owner_name, listingId: row.id });
   });
 }
