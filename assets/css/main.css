@@ -196,6 +196,9 @@ button { font-family: inherit; }
 
 .price { font-family: var(--font-display); font-weight: 800; color: var(--green-700); }
 
+.backlink { display: inline-block; margin-bottom: var(--sp-3); color: var(--blue-600); font-weight: 700; font-size: var(--fs-sm); text-decoration: none; }
+.backlink:hover { text-decoration: underline; }
+
 /* ---------- Feed layout ---------- */
 .feed-head { padding-block: var(--sp-5) var(--sp-4); }
 .feed-head h1 { font-size: var(--fs-xl); }

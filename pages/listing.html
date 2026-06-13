@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Listing — Need-It-Now</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://yubhbztyprfupvjwxwmm.supabase.co" crossorigin />
+  <link rel="preconnect" href="https://esm.sh" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/tokens.css" />
+  <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="brand" href="../index.html">
+        <span class="brand__mark">⚡</span>
+        <span class="full"><b>Need</b>-<b>It</b><span style="color:var(--ink)">-Now</span></span>
+      </a>
+      <div class="nav__links">
+        <a href="../index.html">Home</a>
+        <a href="feed.html">Browse</a>
+        <a href="guidelines.html">Guidelines</a>
+      </div>
+      <div class="nav__user" data-nav-user></div>
+    </div>
+  </nav>
+
+  <main class="wrap" style="padding-block:var(--sp-5)">
+    <a href="feed.html" class="backlink">&larr; Back to feed</a>
+    <div id="listing-root"></div>
+  </main>
+
+  <div class="lightbox" data-lightbox hidden></div>
+
+  <script type="module" src="../assets/js/auth.js"></script>
+  <script type="module" src="../assets/js/listing.js"></script>
+</body>
+</html>
