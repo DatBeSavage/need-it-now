@@ -7,7 +7,7 @@ import { noteConversationOpened, noteConversationClosed } from "./notify.js";
 import { avatarHTML } from "./avatar.js";
 import { openReport } from "./report.js";
 
-var meId = null, unsub = null, seen = {}, lastOpener = null;
+var meId = null, unsub = null, seen = {}, lastOpener = null, lastDay = null, lastSender = null;
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -16,6 +16,16 @@ function esc(s) {
 }
 function timeShort(iso) {
   return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+function dayKey(iso) { return new Date(iso).toDateString(); }
+function dayLabel(iso) {
+  var d = new Date(iso), now = new Date();
+  var t = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var that = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  var diff = Math.round((t - that) / 86400000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 function modal() {
@@ -43,10 +53,10 @@ function modal() {
   return m;
 }
 
-function bubble(msg) {
+function bubble(msg, cont) {
   var mine = msg.sender_id === meId;
-  return '<div class="bub ' + (mine ? "bub--me" : "bub--them") + '">' +
-    (mine ? "" : '<span class="bub__who">' + esc(msg.sender_name) + "</span>") +
+  return '<div class="bub ' + (mine ? "bub--me" : "bub--them") + (cont ? " bub--cont" : "") + '">' +
+    (mine || cont ? "" : '<span class="bub__who">' + esc(msg.sender_name) + "</span>") +
     '<span class="bub__body">' + esc(msg.body) + "</span>" +
     '<span class="bub__time">' + timeShort(msg.created_at) + "</span></div>";
 }
@@ -54,7 +64,14 @@ function append(log, msg) {
   if (seen[msg.id]) return;
   seen[msg.id] = 1;
   var empty = log.querySelector(".chat__empty"); if (empty) empty.remove();
-  log.insertAdjacentHTML("beforeend", bubble(msg));
+  var dk = dayKey(msg.created_at);
+  if (dk !== lastDay) {
+    log.insertAdjacentHTML("beforeend", '<div class="chat__day"><span>' + esc(dayLabel(msg.created_at)) + "</span></div>");
+    lastDay = dk; lastSender = null; // a day break also breaks grouping
+  }
+  var cont = msg.sender_id === lastSender;
+  log.insertAdjacentHTML("beforeend", bubble(msg, cont));
+  lastSender = msg.sender_id;
   log.scrollTop = log.scrollHeight;
 }
 function close() {
@@ -142,7 +159,7 @@ async function openPanel(opts, person, sub) {
   if (unsub) { unsub(); unsub = null; } // tear down any prior conversation's realtime sub before reusing the singleton panel
   var profile = await getProfile();
   if (!profile) { location.href = base() + "pages/login.html"; return; }
-  meId = profile.id; seen = {};
+  meId = profile.id; seen = {}; lastDay = null; lastSender = null;
   var conv = opts.conv || null;
   if (!conv && opts.listing && opts.listing.id) {
     // Re-opening a listing I already messaged: load that thread (find-only —
