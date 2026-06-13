@@ -1,5 +1,5 @@
 // Need-It-Now — feed page: location + radius filtering, search, respond (Supabase).
-import { nearbyListings, getProfile, deleteListing, listingPhotoUrl, subscribeListings, mySaves, toggleSave } from "./api.js";
+import { nearbyListings, getProfile, deleteListing, listingPhotoUrl, subscribeListings, mySaves, toggleSave, savedListings } from "./api.js";
 import { resolveZip } from "./config.js";
 import { fillZipDatalist } from "./zips.js";
 import { toast, go } from "./auth.js";
@@ -153,10 +153,11 @@ function updatePill() {
 }
 function clearPill() { pendingNew = 0; updatePill(); }
 
-function paintRows(rows) {
+function paintRows(rows, emptyHTML) {
   var grid = document.getElementById("listings");
   if (!rows.length) {
-    grid.innerHTML = '<div class="empty"><div class="em">🔍</div>' +
+    grid.innerHTML = emptyHTML ||
+      '<div class="empty"><div class="em">🔍</div>' +
       "<p>Nothing here yet. Try widening your radius or clearing filters — " +
       'or <a href="post.html" style="color:var(--blue-600);font-weight:700">post what you need</a>.</p></div>';
     return;
@@ -194,6 +195,26 @@ async function render() {
       for (var i = 0; i < 6; i++) sk += skeletonHTML();
       grid.innerHTML = sk;
     }
+  }
+
+  if (state.type === "saved") {
+    var sRows;
+    try { sRows = await savedListings(); }
+    catch (e) {
+      if (token !== renderToken) return;
+      grid.innerHTML = '<div class="empty"><div class="em">⚠️</div>' +
+        "<p>Couldn't load saved listings. Check your connection and try again.</p></div>";
+      if (count) count.textContent = "";
+      return;
+    }
+    if (token !== renderToken) return;
+    sRows = sRows.filter(function (r) { return !deletedIds[r.id]; });
+    lastRows = sRows;
+    grid.dataset.loaded = "1";
+    if (count) count.textContent = sRows.length + " saved listing" + (sRows.length === 1 ? "" : "s");
+    paintRows(sRows, SAVED_EMPTY);
+    writeFeedCache(sRows, count ? count.textContent : "");
+    return;
   }
 
   var origin = await resolveZip(state.zip);
@@ -312,7 +333,7 @@ function readStateFromURL() {
   if (p.get("zip")) state.zip = p.get("zip");
   var r = +p.get("radius");
   if ([2, 5, 10, 25, 50].indexOf(r) !== -1) state.radius = r;
-  if (p.get("type") === "sell" || p.get("type") === "buy") state.type = p.get("type");
+  if (["sell", "buy", "saved"].indexOf(p.get("type")) !== -1) state.type = p.get("type");
   if (p.get("q")) state.q = p.get("q");
 }
 function writeStateToURL() {
@@ -358,6 +379,10 @@ function wireControls() {
 
   document.querySelectorAll(".chip").forEach(function (chip) {
     chip.addEventListener("click", function () {
+      if (chip.getAttribute("data-filter") === "saved" && !currentProfile) {
+        go("pages/login.html?next=" + encodeURIComponent("/pages/feed.html?type=saved"));
+        return;
+      }
       document.querySelectorAll(".chip").forEach(function (c) { c.classList.remove("active"); });
       chip.classList.add("active");
       state.type = chip.getAttribute("data-filter");
